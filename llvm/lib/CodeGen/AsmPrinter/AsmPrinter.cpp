@@ -765,11 +765,7 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   if (GVKind.isCommon()) {
     if (Size == 0) Size = 1;   // .comm Foo, 0 is undefined, avoid it.
     // .comm _foo, 42, 4
-    const bool SupportsAlignment =
-        getObjFileLowering().getCommDirectiveSupportsAlignment();
-    OutStreamer->emitCommonSymbol(GVSym, Size,
-                                  SupportsAlignment ? Alignment.value() : 0,
-                                  TailPadding);
+    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment.value(), TailPadding);
     return;
   }
 
@@ -812,11 +808,7 @@ void AsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
     // .local _foo
     OutStreamer->emitSymbolAttribute(GVSym, MCSA_Local);
     // .comm _foo, 42, 4
-    const bool SupportsAlignment =
-        getObjFileLowering().getCommDirectiveSupportsAlignment();
-    OutStreamer->emitCommonSymbol(GVSym, Size,
-                                  SupportsAlignment ? Alignment.value() : 0,
-                                  TailPadding);
+    OutStreamer->emitCommonSymbol(GVSym, Size, Alignment.value(), TailPadding);
     return;
   }
 
@@ -1576,7 +1568,7 @@ void AsmPrinter::emitPCSections(const MachineFunction &MF) {
 /// Returns true if function begin and end labels should be emitted.
 static bool needFuncLabels(const MachineFunction &MF) {
   MachineModuleInfo &MMI = MF.getMMI();
-  if (!MF.getLandingPads().empty() || MF.hasEHFunclets() || 
+  if (!MF.getLandingPads().empty() || MF.hasEHFunclets() ||
       MMI.hasDebugInfo() ||
       MF.getFunction().hasMetadata(LLVMContext::MD_pcsections))
     return true;
