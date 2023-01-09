@@ -2221,6 +2221,13 @@ QualType Sema::BuildPointerType(QualType T, PointerInterpretationKind PIK,
 
   if (getLangOpts().OpenCL)
     T = deduceOpenCLPointeeAddrSpace(*this, T);
+  
+  // In WebAssembly, pointers to reference types are illegal.
+  if (getASTContext().getTargetInfo().getTriple().isWasm() &&
+      T->isWebAssemblyReferenceType()) {
+    Diag(Loc, diag::err_wasm_reference_pr) << 0;
+    return QualType();
+  }
 
   // If we are in purecap ABI turn pointers marked as using an integer
   // representation into a plain pointer-range-sized integer
@@ -2234,6 +2241,7 @@ QualType Sema::BuildPointerType(QualType T, PointerInterpretationKind PIK,
       *ValidPointer = false;
     return Context.getPointerDiffType();
   }
+
   // Build the pointer type.
   if (ValidPointer)
     *ValidPointer = true;
@@ -2310,6 +2318,13 @@ QualType Sema::BuildReferenceType(QualType T, bool SpelledAsLValue,
 
   if (getLangOpts().OpenCL)
     T = deduceOpenCLPointeeAddrSpace(*this, T);
+
+  // In WebAssembly, references to reference types are illegal.
+  if (getASTContext().getTargetInfo().getTriple().isWasm() &&
+      T->isWebAssemblyReferenceType()) {
+    Diag(Loc, diag::err_wasm_reference_pr) << 1;
+    return QualType();
+  }
 
   // Handle restrict on references.
   if (LValueRef)
