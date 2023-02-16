@@ -11547,7 +11547,7 @@ static MachineBasicBlock *emitReadCycleWidePseudo(MachineInstr &MI,
 }
 
 static MachineBasicBlock *emitSplitF64Pseudo(MachineInstr &MI,
-                                             MachineBasicBlock *BB,
+                                             MachineBasicBlock *BB) {
   assert((MI.getOpcode() == RISCV::SplitF64Pseudo ||
           MI.getOpcode() == RISCV::SplitStoreF64Pseudo ||
           MI.getOpcode() == RISCV::CheriSplitStoreF64Pseudo) &&
