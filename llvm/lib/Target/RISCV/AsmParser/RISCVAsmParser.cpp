@@ -581,7 +581,7 @@ public:
       return isUImm5();
     if (Kind != KindTy::FPImmediate)
       return false;
-    int Idx = RISCVLoadFPImm::getLoadFP32Imm(APInt(32, getFPConst()));
+    int Idx = RISCVLoadFPImm::getLoadFP64Imm(APInt(64, getFPConst()));
     // Don't allow decimal version of the minimum value. It is a different value
     // for each supported data type.
     return Idx >= 0 && Idx != 1;
@@ -1130,7 +1130,7 @@ public:
       return;
     }
 
-    int Imm = RISCVLoadFPImm::getLoadFP32Imm(APInt(32, getFPConst()));
+    int Imm = RISCVLoadFPImm::getLoadFP64Imm(APInt(64, getFPConst()));
     Inst.addOperand(MCOperand::createImm(Imm));
   }
 
@@ -1844,7 +1844,7 @@ OperandMatchResultTy RISCVAsmParser::parseFPImm(OperandVector &Operands) {
   }
 
   // Parse FP representation.
-  APFloat RealVal(APFloat::IEEEsingle());
+  APFloat RealVal(APFloat::IEEEdouble());
   auto StatusOrErr =
       RealVal.convertFromString(Tok.getString(), APFloat::rmTowardZero);
   if (errorToBool(StatusOrErr.takeError())) {
