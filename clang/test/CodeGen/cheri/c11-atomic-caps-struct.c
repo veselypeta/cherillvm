@@ -48,37 +48,38 @@ void test_init(_Atomic(capstruct) *f, capstruct value) {
 // HYBRID-NEXT:  entry:
 // HYBRID-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_CAPSTRUCT:%.*]], align 16
 // HYBRID-NEXT:    [[ATOMIC_TEMP:%.*]] = alloca [[STRUCT_CAPSTRUCT]], align 16
-// HYBRID-NEXT:    call void @__atomic_load(i64 noundef 16, ptr noundef [[F]], ptr noundef [[ATOMIC_TEMP]], i32 noundef signext 5)
+// HYBRID-NEXT:    [[TMP0:%.*]] = load atomic ptr addrspace(200), ptr [[F]] seq_cst, align 16
+// HYBRID-NEXT:    store ptr addrspace(200) [[TMP0]], ptr [[ATOMIC_TEMP]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[RETVAL]], ptr align 16 [[ATOMIC_TEMP]], i64 16, i1 false)
-// HYBRID-NEXT:    [[TMP0:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr [[RETVAL]], align 16
-// HYBRID-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP0]]
+// HYBRID-NEXT:    [[TMP1:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr [[RETVAL]], align 16
+// HYBRID-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP1]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_load
 // PURECAP-SAME: (ptr addrspace(200) noundef [[F:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-NEXT:  entry:
 // PURECAP-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_CAPSTRUCT:%.*]], align 16, addrspace(200)
 // PURECAP-NEXT:    [[ATOMIC_TEMP:%.*]] = alloca [[STRUCT_CAPSTRUCT]], align 16, addrspace(200)
-// PURECAP-NEXT:    call void @__atomic_load(i64 noundef 16, ptr addrspace(200) noundef [[F]], ptr addrspace(200) noundef [[ATOMIC_TEMP]], i32 noundef signext 5)
+// PURECAP-NEXT:    [[TMP0:%.*]] = load atomic ptr addrspace(200), ptr addrspace(200) [[F]] seq_cst, align 16
+// PURECAP-NEXT:    store ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[ATOMIC_TEMP]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[RETVAL]], ptr addrspace(200) align 16 [[ATOMIC_TEMP]], i64 16, i1 false)
-// PURECAP-NEXT:    [[TMP0:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[RETVAL]], align 16
-// PURECAP-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP0]]
+// PURECAP-NEXT:    [[TMP1:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[RETVAL]], align 16
+// PURECAP-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP1]]
 //
 // PURECAP-TYPED-POINTERS-LABEL: define {{[^@]+}}@test_load
 // PURECAP-TYPED-POINTERS-SAME: ([[STRUCT_CAPSTRUCT:%.*]] addrspace(200)* noundef [[F:%.*]]) addrspace(200) #[[ATTR0]] {
 // PURECAP-TYPED-POINTERS-NEXT:  entry:
 // PURECAP-TYPED-POINTERS-NEXT:    [[RETVAL:%.*]] = alloca [[STRUCT_CAPSTRUCT]], align 16, addrspace(200)
 // PURECAP-TYPED-POINTERS-NEXT:    [[ATOMIC_TEMP:%.*]] = alloca [[STRUCT_CAPSTRUCT]], align 16, addrspace(200)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[ATOMIC_TEMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast i128 addrspace(200)* [[TMP0]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast i128 addrspace(200)* [[TMP1]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    call void @__atomic_load(i64 noundef 16, i8 addrspace(200)* noundef [[TMP2]], i8 addrspace(200)* noundef [[TMP3]], i32 noundef signext 5)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast i128 addrspace(200)* [[TMP1]] to [[STRUCT_CAPSTRUCT]] addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[TMP4]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP5]], i8 addrspace(200)* align 16 [[TMP6]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = load [[STRUCT_CAPSTRUCT]], [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]], align 16
-// PURECAP-TYPED-POINTERS-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP7]]
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[ATOMIC_TEMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = load atomic i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP0]] seq_cst, align 16
+// PURECAP-TYPED-POINTERS-NEXT:    store i8 addrspace(200)* [[TMP2]], i8 addrspace(200)* addrspace(200)* [[TMP1]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast i8 addrspace(200)* addrspace(200)* [[TMP1]] to [[STRUCT_CAPSTRUCT]] addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]] to i8 addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[TMP3]] to i8 addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP4]], i8 addrspace(200)* align 16 [[TMP5]], i64 16, i1 false)
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = load [[STRUCT_CAPSTRUCT]], [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP6]]
 //
 capstruct test_load(_Atomic(capstruct) *f) {
   return __c11_atomic_load(f, __ATOMIC_SEQ_CST);
@@ -92,7 +93,8 @@ capstruct test_load(_Atomic(capstruct) *f) {
 // HYBRID-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr [[VALUE]], i32 0, i32 0
 // HYBRID-NEXT:    store ptr addrspace(200) [[VALUE_COERCE]], ptr [[COERCE_DIVE]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DOTATOMICTMP]], ptr align 16 [[VALUE]], i64 16, i1 false)
-// HYBRID-NEXT:    call void @__atomic_store(i64 noundef 16, ptr noundef [[F]], ptr noundef [[DOTATOMICTMP]], i32 noundef signext 5)
+// HYBRID-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[DOTATOMICTMP]], align 16
+// HYBRID-NEXT:    store atomic ptr addrspace(200) [[TMP0]], ptr [[F]] seq_cst, align 16
 // HYBRID-NEXT:    ret void
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_store
@@ -103,7 +105,8 @@ capstruct test_load(_Atomic(capstruct) *f) {
 // PURECAP-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[VALUE]], i32 0, i32 0
 // PURECAP-NEXT:    store ptr addrspace(200) [[VALUE_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DOTATOMICTMP]], ptr addrspace(200) align 16 [[VALUE]], i64 16, i1 false)
-// PURECAP-NEXT:    call void @__atomic_store(i64 noundef 16, ptr addrspace(200) noundef [[F]], ptr addrspace(200) noundef [[DOTATOMICTMP]], i32 noundef signext 5)
+// PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DOTATOMICTMP]], align 16
+// PURECAP-NEXT:    store atomic ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[F]] seq_cst, align 16
 // PURECAP-NEXT:    ret void
 //
 // PURECAP-TYPED-POINTERS-LABEL: define {{[^@]+}}@test_store
@@ -116,11 +119,10 @@ capstruct test_load(_Atomic(capstruct) *f) {
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[VALUE]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP0]], i8 addrspace(200)* align 16 [[TMP1]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast i128 addrspace(200)* [[TMP2]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast i128 addrspace(200)* [[TMP3]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    call void @__atomic_store(i64 noundef 16, i8 addrspace(200)* noundef [[TMP4]], i8 addrspace(200)* noundef [[TMP5]], i32 noundef signext 5)
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    store atomic i8 addrspace(200)* [[TMP4]], i8 addrspace(200)* addrspace(200)* [[TMP2]] seq_cst, align 16
 // PURECAP-TYPED-POINTERS-NEXT:    ret void
 //
 void test_store(_Atomic(capstruct) *f, capstruct value) {
@@ -137,10 +139,12 @@ void test_store(_Atomic(capstruct) *f, capstruct value) {
 // HYBRID-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr [[VALUE]], i32 0, i32 0
 // HYBRID-NEXT:    store ptr addrspace(200) [[VALUE_COERCE]], ptr [[COERCE_DIVE]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DOTATOMICTMP]], ptr align 16 [[VALUE]], i64 16, i1 false)
-// HYBRID-NEXT:    call void @__atomic_exchange(i64 noundef 16, ptr noundef [[F]], ptr noundef [[DOTATOMICTMP]], ptr noundef [[ATOMIC_TEMP]], i32 noundef signext 5)
+// HYBRID-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[DOTATOMICTMP]], align 16
+// HYBRID-NEXT:    [[TMP1:%.*]] = atomicrmw xchg ptr [[F]], ptr addrspace(200) [[TMP0]] seq_cst, align 16
+// HYBRID-NEXT:    store ptr addrspace(200) [[TMP1]], ptr [[ATOMIC_TEMP]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[RETVAL]], ptr align 16 [[ATOMIC_TEMP]], i64 16, i1 false)
-// HYBRID-NEXT:    [[TMP0:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr [[RETVAL]], align 16
-// HYBRID-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP0]]
+// HYBRID-NEXT:    [[TMP2:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr [[RETVAL]], align 16
+// HYBRID-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP2]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_xchg
 // PURECAP-SAME: (ptr addrspace(200) noundef [[F:%.*]], ptr addrspace(200) [[VALUE_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -152,10 +156,12 @@ void test_store(_Atomic(capstruct) *f, capstruct value) {
 // PURECAP-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[VALUE]], i32 0, i32 0
 // PURECAP-NEXT:    store ptr addrspace(200) [[VALUE_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DOTATOMICTMP]], ptr addrspace(200) align 16 [[VALUE]], i64 16, i1 false)
-// PURECAP-NEXT:    call void @__atomic_exchange(i64 noundef 16, ptr addrspace(200) noundef [[F]], ptr addrspace(200) noundef [[DOTATOMICTMP]], ptr addrspace(200) noundef [[ATOMIC_TEMP]], i32 noundef signext 5)
+// PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DOTATOMICTMP]], align 16
+// PURECAP-NEXT:    [[TMP1:%.*]] = atomicrmw xchg ptr addrspace(200) [[F]], ptr addrspace(200) [[TMP0]] seq_cst, align 16
+// PURECAP-NEXT:    store ptr addrspace(200) [[TMP1]], ptr addrspace(200) [[ATOMIC_TEMP]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[RETVAL]], ptr addrspace(200) align 16 [[ATOMIC_TEMP]], i64 16, i1 false)
-// PURECAP-NEXT:    [[TMP0:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[RETVAL]], align 16
-// PURECAP-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP0]]
+// PURECAP-NEXT:    [[TMP2:%.*]] = load [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[RETVAL]], align 16
+// PURECAP-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP2]]
 //
 // PURECAP-TYPED-POINTERS-LABEL: define {{[^@]+}}@test_xchg
 // PURECAP-TYPED-POINTERS-SAME: ([[STRUCT_CAPSTRUCT:%.*]] addrspace(200)* noundef [[F:%.*]], i8 addrspace(200)* [[VALUE_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -169,19 +175,18 @@ void test_store(_Atomic(capstruct) *f, capstruct value) {
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[VALUE]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP0]], i8 addrspace(200)* align 16 [[TMP1]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[ATOMIC_TEMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast i128 addrspace(200)* [[TMP2]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = bitcast i128 addrspace(200)* [[TMP3]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = bitcast i128 addrspace(200)* [[TMP4]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    call void @__atomic_exchange(i64 noundef 16, i8 addrspace(200)* noundef [[TMP5]], i8 addrspace(200)* noundef [[TMP6]], i8 addrspace(200)* noundef [[TMP7]], i32 noundef signext 5)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP8:%.*]] = bitcast i128 addrspace(200)* [[TMP4]] to [[STRUCT_CAPSTRUCT]] addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP9:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP10:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[TMP8]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP9]], i8 addrspace(200)* align 16 [[TMP10]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP11:%.*]] = load [[STRUCT_CAPSTRUCT]], [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]], align 16
-// PURECAP-TYPED-POINTERS-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP11]]
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[ATOMIC_TEMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = atomicrmw xchg i8 addrspace(200)* addrspace(200)* [[TMP2]], i8 addrspace(200)* [[TMP5]] seq_cst, align 16
+// PURECAP-TYPED-POINTERS-NEXT:    store i8 addrspace(200)* [[TMP6]], i8 addrspace(200)* addrspace(200)* [[TMP4]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = bitcast i8 addrspace(200)* addrspace(200)* [[TMP4]] to [[STRUCT_CAPSTRUCT]] addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP8:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]] to i8 addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP9:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[TMP7]] to i8 addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP8]], i8 addrspace(200)* align 16 [[TMP9]], i64 16, i1 false)
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP10:%.*]] = load [[STRUCT_CAPSTRUCT]], [[STRUCT_CAPSTRUCT]] addrspace(200)* [[RETVAL]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    ret [[STRUCT_CAPSTRUCT]] [[TMP10]]
 //
 capstruct test_xchg(_Atomic(capstruct) *f, capstruct value) {
   return __c11_atomic_exchange(f, value, __ATOMIC_SEQ_CST);
@@ -195,8 +200,19 @@ capstruct test_xchg(_Atomic(capstruct) *f, capstruct value) {
 // HYBRID-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr [[NEW]], i32 0, i32 0
 // HYBRID-NEXT:    store ptr addrspace(200) [[NEW_COERCE]], ptr [[COERCE_DIVE]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DOTATOMICTMP]], ptr align 16 [[NEW]], i64 16, i1 false)
-// HYBRID-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, ptr noundef [[F]], ptr noundef [[EXP]], ptr noundef [[DOTATOMICTMP]], i32 noundef signext 0, i32 noundef signext 0)
-// HYBRID-NEXT:    ret i1 [[CALL]]
+// HYBRID-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[EXP]], align 16
+// HYBRID-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr [[DOTATOMICTMP]], align 16
+// HYBRID-NEXT:    [[TMP2:%.*]] = cmpxchg weak ptr [[F]], ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]] monotonic monotonic, align 16
+// HYBRID-NEXT:    [[TMP3:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 0
+// HYBRID-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
+// HYBRID-NEXT:    br i1 [[TMP4]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// HYBRID:       cmpxchg.store_expected:
+// HYBRID-NEXT:    store ptr addrspace(200) [[TMP3]], ptr [[EXP]], align 16
+// HYBRID-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// HYBRID:       cmpxchg.continue:
+// HYBRID-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP4]] to i8
+// HYBRID-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// HYBRID-NEXT:    ret i1 [[TOBOOL]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_cmpxchg_weak
 // PURECAP-SAME: (ptr addrspace(200) noundef [[F:%.*]], ptr addrspace(200) noundef [[EXP:%.*]], ptr addrspace(200) [[NEW_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -206,8 +222,19 @@ capstruct test_xchg(_Atomic(capstruct) *f, capstruct value) {
 // PURECAP-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[NEW]], i32 0, i32 0
 // PURECAP-NEXT:    store ptr addrspace(200) [[NEW_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DOTATOMICTMP]], ptr addrspace(200) align 16 [[NEW]], i64 16, i1 false)
-// PURECAP-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, ptr addrspace(200) noundef [[F]], ptr addrspace(200) noundef [[EXP]], ptr addrspace(200) noundef [[DOTATOMICTMP]], i32 noundef signext 0, i32 noundef signext 0)
-// PURECAP-NEXT:    ret i1 [[CALL]]
+// PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[EXP]], align 16
+// PURECAP-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DOTATOMICTMP]], align 16
+// PURECAP-NEXT:    [[TMP2:%.*]] = cmpxchg weak ptr addrspace(200) [[F]], ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]] monotonic monotonic, align 16
+// PURECAP-NEXT:    [[TMP3:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 0
+// PURECAP-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
+// PURECAP-NEXT:    br i1 [[TMP4]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// PURECAP:       cmpxchg.store_expected:
+// PURECAP-NEXT:    store ptr addrspace(200) [[TMP3]], ptr addrspace(200) [[EXP]], align 16
+// PURECAP-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// PURECAP:       cmpxchg.continue:
+// PURECAP-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP4]] to i8
+// PURECAP-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// PURECAP-NEXT:    ret i1 [[TOBOOL]]
 //
 // PURECAP-TYPED-POINTERS-LABEL: define {{[^@]+}}@test_cmpxchg_weak
 // PURECAP-TYPED-POINTERS-SAME: ([[STRUCT_CAPSTRUCT:%.*]] addrspace(200)* noundef [[F:%.*]], [[STRUCT_CAPSTRUCT]] addrspace(200)* noundef [[EXP:%.*]], i8 addrspace(200)* [[NEW_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -219,14 +246,22 @@ capstruct test_xchg(_Atomic(capstruct) *f, capstruct value) {
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[NEW]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP0]], i8 addrspace(200)* align 16 [[TMP1]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[EXP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast i128 addrspace(200)* [[TMP2]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = bitcast i128 addrspace(200)* [[TMP3]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = bitcast i128 addrspace(200)* [[TMP4]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, i8 addrspace(200)* noundef [[TMP5]], i8 addrspace(200)* noundef [[TMP6]], i8 addrspace(200)* noundef [[TMP7]], i32 noundef signext 0, i32 noundef signext 0)
-// PURECAP-TYPED-POINTERS-NEXT:    ret i1 [[CALL]]
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[EXP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP4]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = cmpxchg weak i8 addrspace(200)* addrspace(200)* [[TMP2]], i8 addrspace(200)* [[TMP5]], i8 addrspace(200)* [[TMP6]] monotonic monotonic, align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP8:%.*]] = extractvalue { i8 addrspace(200)*, i1 } [[TMP7]], 0
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP9:%.*]] = extractvalue { i8 addrspace(200)*, i1 } [[TMP7]], 1
+// PURECAP-TYPED-POINTERS-NEXT:    br i1 [[TMP9]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// PURECAP-TYPED-POINTERS:       cmpxchg.store_expected:
+// PURECAP-TYPED-POINTERS-NEXT:    store i8 addrspace(200)* [[TMP8]], i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// PURECAP-TYPED-POINTERS:       cmpxchg.continue:
+// PURECAP-TYPED-POINTERS-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP9]] to i8
+// PURECAP-TYPED-POINTERS-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// PURECAP-TYPED-POINTERS-NEXT:    ret i1 [[TOBOOL]]
 //
 _Bool test_cmpxchg_weak(_Atomic(capstruct) *f, capstruct *exp, capstruct new) {
   return __c11_atomic_compare_exchange_weak(f, exp, new, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
@@ -240,8 +275,19 @@ _Bool test_cmpxchg_weak(_Atomic(capstruct) *f, capstruct *exp, capstruct new) {
 // HYBRID-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr [[NEW]], i32 0, i32 0
 // HYBRID-NEXT:    store ptr addrspace(200) [[NEW_COERCE]], ptr [[COERCE_DIVE]], align 16
 // HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DOTATOMICTMP]], ptr align 16 [[NEW]], i64 16, i1 false)
-// HYBRID-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, ptr noundef [[F]], ptr noundef [[EXP]], ptr noundef [[DOTATOMICTMP]], i32 noundef signext 0, i32 noundef signext 0)
-// HYBRID-NEXT:    ret i1 [[CALL]]
+// HYBRID-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr [[EXP]], align 16
+// HYBRID-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr [[DOTATOMICTMP]], align 16
+// HYBRID-NEXT:    [[TMP2:%.*]] = cmpxchg ptr [[F]], ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]] monotonic monotonic, align 16
+// HYBRID-NEXT:    [[TMP3:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 0
+// HYBRID-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
+// HYBRID-NEXT:    br i1 [[TMP4]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// HYBRID:       cmpxchg.store_expected:
+// HYBRID-NEXT:    store ptr addrspace(200) [[TMP3]], ptr [[EXP]], align 16
+// HYBRID-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// HYBRID:       cmpxchg.continue:
+// HYBRID-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP4]] to i8
+// HYBRID-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// HYBRID-NEXT:    ret i1 [[TOBOOL]]
 //
 // PURECAP-LABEL: define {{[^@]+}}@test_cmpxchg_strong
 // PURECAP-SAME: (ptr addrspace(200) noundef [[F:%.*]], ptr addrspace(200) noundef [[EXP:%.*]], ptr addrspace(200) [[NEW_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -251,8 +297,19 @@ _Bool test_cmpxchg_weak(_Atomic(capstruct) *f, capstruct *exp, capstruct new) {
 // PURECAP-NEXT:    [[COERCE_DIVE:%.*]] = getelementptr inbounds [[STRUCT_CAPSTRUCT]], ptr addrspace(200) [[NEW]], i32 0, i32 0
 // PURECAP-NEXT:    store ptr addrspace(200) [[NEW_COERCE]], ptr addrspace(200) [[COERCE_DIVE]], align 16
 // PURECAP-NEXT:    call void @llvm.memcpy.p200.p200.i64(ptr addrspace(200) align 16 [[DOTATOMICTMP]], ptr addrspace(200) align 16 [[NEW]], i64 16, i1 false)
-// PURECAP-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, ptr addrspace(200) noundef [[F]], ptr addrspace(200) noundef [[EXP]], ptr addrspace(200) noundef [[DOTATOMICTMP]], i32 noundef signext 0, i32 noundef signext 0)
-// PURECAP-NEXT:    ret i1 [[CALL]]
+// PURECAP-NEXT:    [[TMP0:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[EXP]], align 16
+// PURECAP-NEXT:    [[TMP1:%.*]] = load ptr addrspace(200), ptr addrspace(200) [[DOTATOMICTMP]], align 16
+// PURECAP-NEXT:    [[TMP2:%.*]] = cmpxchg ptr addrspace(200) [[F]], ptr addrspace(200) [[TMP0]], ptr addrspace(200) [[TMP1]] monotonic monotonic, align 16
+// PURECAP-NEXT:    [[TMP3:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 0
+// PURECAP-NEXT:    [[TMP4:%.*]] = extractvalue { ptr addrspace(200), i1 } [[TMP2]], 1
+// PURECAP-NEXT:    br i1 [[TMP4]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// PURECAP:       cmpxchg.store_expected:
+// PURECAP-NEXT:    store ptr addrspace(200) [[TMP3]], ptr addrspace(200) [[EXP]], align 16
+// PURECAP-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// PURECAP:       cmpxchg.continue:
+// PURECAP-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP4]] to i8
+// PURECAP-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// PURECAP-NEXT:    ret i1 [[TOBOOL]]
 //
 // PURECAP-TYPED-POINTERS-LABEL: define {{[^@]+}}@test_cmpxchg_strong
 // PURECAP-TYPED-POINTERS-SAME: ([[STRUCT_CAPSTRUCT:%.*]] addrspace(200)* noundef [[F:%.*]], [[STRUCT_CAPSTRUCT]] addrspace(200)* noundef [[EXP:%.*]], i8 addrspace(200)* [[NEW_COERCE:%.*]]) addrspace(200) #[[ATTR0]] {
@@ -264,14 +321,22 @@ _Bool test_cmpxchg_weak(_Atomic(capstruct) *f, capstruct *exp, capstruct new) {
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP0:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    [[TMP1:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[NEW]] to i8 addrspace(200)*
 // PURECAP-TYPED-POINTERS-NEXT:    call void @llvm.memcpy.p200i8.p200i8.i64(i8 addrspace(200)* align 16 [[TMP0]], i8 addrspace(200)* align 16 [[TMP1]], i64 16, i1 false)
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[EXP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i128 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = bitcast i128 addrspace(200)* [[TMP2]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = bitcast i128 addrspace(200)* [[TMP3]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = bitcast i128 addrspace(200)* [[TMP4]] to i8 addrspace(200)*
-// PURECAP-TYPED-POINTERS-NEXT:    [[CALL:%.*]] = call zeroext i1 @__atomic_compare_exchange(i64 noundef 16, i8 addrspace(200)* noundef [[TMP5]], i8 addrspace(200)* noundef [[TMP6]], i8 addrspace(200)* noundef [[TMP7]], i32 noundef signext 0, i32 noundef signext 0)
-// PURECAP-TYPED-POINTERS-NEXT:    ret i1 [[CALL]]
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP2:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[F]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP3:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[EXP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP4:%.*]] = bitcast [[STRUCT_CAPSTRUCT]] addrspace(200)* [[DOTATOMICTMP]] to i8 addrspace(200)* addrspace(200)*
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP5:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP6:%.*]] = load i8 addrspace(200)*, i8 addrspace(200)* addrspace(200)* [[TMP4]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP7:%.*]] = cmpxchg i8 addrspace(200)* addrspace(200)* [[TMP2]], i8 addrspace(200)* [[TMP5]], i8 addrspace(200)* [[TMP6]] monotonic monotonic, align 16
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP8:%.*]] = extractvalue { i8 addrspace(200)*, i1 } [[TMP7]], 0
+// PURECAP-TYPED-POINTERS-NEXT:    [[TMP9:%.*]] = extractvalue { i8 addrspace(200)*, i1 } [[TMP7]], 1
+// PURECAP-TYPED-POINTERS-NEXT:    br i1 [[TMP9]], label [[CMPXCHG_CONTINUE:%.*]], label [[CMPXCHG_STORE_EXPECTED:%.*]]
+// PURECAP-TYPED-POINTERS:       cmpxchg.store_expected:
+// PURECAP-TYPED-POINTERS-NEXT:    store i8 addrspace(200)* [[TMP8]], i8 addrspace(200)* addrspace(200)* [[TMP3]], align 16
+// PURECAP-TYPED-POINTERS-NEXT:    br label [[CMPXCHG_CONTINUE]]
+// PURECAP-TYPED-POINTERS:       cmpxchg.continue:
+// PURECAP-TYPED-POINTERS-NEXT:    [[FROMBOOL:%.*]] = zext i1 [[TMP9]] to i8
+// PURECAP-TYPED-POINTERS-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[FROMBOOL]] to i1
+// PURECAP-TYPED-POINTERS-NEXT:    ret i1 [[TOBOOL]]
 //
 _Bool test_cmpxchg_strong(_Atomic(capstruct) *f, capstruct *exp, capstruct new) {
   return __c11_atomic_compare_exchange_strong(f, exp, new, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
