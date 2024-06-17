@@ -58,6 +58,7 @@
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/Endian.h"
 #include <algorithm>
+#include <mutex>
 
 using namespace llvm;
 using namespace llvm::ELF;
@@ -1077,6 +1078,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
             R_CHERI_CAPABILITY_TABLE_INDEX_CALL,
             R_CHERI_CAPABILITY_TABLE_INDEX_CALL_SMALL_IMMEDIATE,
             R_CHERI_CAPABILITY_TABLE_ENTRY_PC>(expr)) {
+    std::lock_guard<std::mutex> lock(relocMutex);
     in.cheriCapTable->addEntry(sym, expr, sec, offset);
     // Write out the index into the instruction
     sec->relocations.push_back({expr, type, offset, addend, &sym});
@@ -1127,6 +1129,7 @@ void RelocationScanner::processAux(RelExpr expr, RelType type, uint64_t offset,
   bool canWrite = (sec->flags & SHF_WRITE) || !config->zText;
 
   if (expr == R_CHERI_CAPABILITY) {
+    std::lock_guard<std::mutex> lock(relocMutex);
     static auto getRelocTargetLocation = [&]() -> std::string {
       return "\n>>> referenced by " +
              SymbolAndOffset(sec, offset).verboseToString();
@@ -1289,6 +1292,7 @@ static unsigned handleMipsTlsRelocation(RelType type, Symbol &sym,
 static unsigned handleTlsRelocation(RelType type, Symbol &sym,
                                     InputSectionBase &c, uint64_t offset,
                                     int64_t addend, RelExpr expr) {
+  std::lock_guard<std::mutex> lock(relocMutex);
   if (expr == R_TPREL || expr == R_TPREL_NEG) {
     if (config->shared) {
       errorOrWarn("relocation " + toString(type) + " against " + toString(sym) +

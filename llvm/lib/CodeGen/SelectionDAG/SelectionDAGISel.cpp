@@ -1307,6 +1307,7 @@ static bool isFoldedOrDeadInstruction(const Instruction *I,
          !FuncInfo.isExportedInst(I); // Exported instrs must be computed.
 }
 
+[[maybe_unused]]
 static const AllocaInst *findAllocaForDbgDeclare(const Value *Address) {
   if (const auto *AI = dyn_cast<AllocaInst>(Address))
     return AI;

@@ -749,6 +749,11 @@ bool RISCVRegisterInfo::getRegAllocationHints(
   if (!VRM || DisableRegAllocHints)
     return BaseImplRetVal;
 
+  // Turn off reg allocation hints for cheri
+  auto &ST = MF.getSubtarget();
+  if (ST.hasFeature(RISCV::FeatureCheri))
+    return BaseImplRetVal;
+
   // Add any two address hints after any copy hints.
   SmallSet<Register, 4> TwoAddrHints;
 
