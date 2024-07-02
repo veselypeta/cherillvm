@@ -762,11 +762,6 @@ bool RISCVRegisterInfo::getRegAllocationHints(
   if (!VRM || DisableRegAllocHints)
     return BaseImplRetVal;
 
-  // Turn off reg allocation hints for cheri
-  auto &ST = MF.getSubtarget();
-  if (ST.hasFeature(RISCV::FeatureCheri))
-    return BaseImplRetVal;
-
   // Add any two address hints after any copy hints.
   SmallSet<Register, 4> TwoAddrHints;
 
@@ -775,7 +770,8 @@ bool RISCVRegisterInfo::getRegAllocationHints(
     Register Reg = MO.getReg();
     Register PhysReg = Reg.isPhysical() ? Reg : Register(VRM->getPhys(Reg));
     if (PhysReg && (!NeedGPRC || RISCV::GPRCRegClass.contains(PhysReg))) {
-      assert(!MO.getSubReg() && !VRRegMO.getSubReg() && "Unexpected subreg!");
+      assert((!MO.getSubReg() || RISCV::GPCRRegClass.contains(Reg)) &&
+             !VRRegMO.getSubReg() && "Unexpected subreg!");
       if (!MRI->isReserved(PhysReg) && !is_contained(Hints, PhysReg))
         TwoAddrHints.insert(PhysReg);
     }
