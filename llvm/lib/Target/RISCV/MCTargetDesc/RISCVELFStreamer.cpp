@@ -254,8 +254,10 @@ bool RISCVELFStreamer::requiresFixups(MCContext &C, const MCExpr *Value,
   // .apple_types sections.
   //
   // TODO Implement delayed relocation decision.
-  if (!A.isInSection() && !A.isTemporary() && B.isInSection())
-    return true;
+  // TODO This breaks tests which have @plt and uses ADD/SUBB instead of
+  // R_RISCV_PLT32
+  //if (!A.isInSection() && !A.isTemporary() && B.isInSection())
+  //  return true;
 
   // Support cross-section symbolic differences ...
   return A.isInSection() && B.isInSection() &&
