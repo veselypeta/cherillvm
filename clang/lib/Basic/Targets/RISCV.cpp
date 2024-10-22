@@ -376,6 +376,7 @@ bool RISCVTargetInfo::hasFeature(StringRef Feature) const {
                     .Case("32bit", !Is64Bit)
                     .Case("64bit", Is64Bit)
                     .Case("xcheri", HasCheri)
+                    .Case("cheri-bounded-vararg", CheriBoundVarArg)
                     .Default(std::nullopt);
   if (Result)
     return *Result;
@@ -410,6 +411,7 @@ bool RISCVTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
     CapSize = XLen * 2;
     HasCheriISAv9Semantics =
         llvm::is_contained(Features, "+xcheri-v9-semantics");
+    CheriBoundVarArg = llvm::is_contained(Features, "+cheri-bounded-vararg");
   }
 
   if (ABI.empty())
