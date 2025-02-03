@@ -622,6 +622,8 @@ struct CaptablePermissions {
       UINT64_C(1) << ((sizeof(typename ELFT::uint) * 8) - 1);
   static const uint64_t readOnly =
       UINT64_C(1) << ((sizeof(typename ELFT::uint) * 8) - 2);
+  static const uint64_t dontSeal =
+      UINT64_C(1) << ((sizeof(typename ELFT::uint) * 8) - 3);
 };
 
 template <class ELFT>
@@ -669,6 +671,8 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
     uint64_t permissions = 0;
     // Fow now Function implies ReadOnly so don't add the flag
     if (reloc.target.sym()->isFunc()) {
+      if (reloc.target.sym()->isFuncDontSeal())
+        permissions |= CaptablePermissions<ELFT>::dontSeal;
       permissions |= CaptablePermissions<ELFT>::function;
     } else if (auto os = reloc.target.sym()->getOutputSection()) {
       assert(!reloc.target.sym()->isTls());

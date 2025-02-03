@@ -99,6 +99,7 @@ public:
   void emitDirectiveOptionNoRelax() override;
   void emitDirectiveOptionCapMode() override;
   void emitDirectiveOptionNoCapMode() override;
+  void emitDirectiveCheriDontSeal(MCSymbol &Symbol) override;
   void emitDirectiveVariantCC(MCSymbol &Symbol) override;
 
   void finish() override;

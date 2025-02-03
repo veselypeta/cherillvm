@@ -146,6 +146,11 @@ void RISCVTargetELFStreamer::emitDirectiveVariantCC(MCSymbol &Symbol) {
   cast<MCSymbolELF>(Symbol).setOther(ELF::STO_RISCV_VARIANT_CC);
 }
 
+void RISCVTargetELFStreamer::emitDirectiveCheriDontSeal(MCSymbol &Symbol) {
+  getStreamer().getAssembler().registerSymbol(Symbol);
+  cast<MCSymbolELF>(Symbol).setOther(ELF::STO_RISCV_CHERI_DONT_SEAL);
+}
+
 bool RISCVELFStreamer::requiresFixups(MCContext &C, const MCExpr *Value,
                                       const MCExpr *&LHS, const MCExpr *&RHS) {
   const auto *MBE = dyn_cast<MCBinaryExpr>(Value);
