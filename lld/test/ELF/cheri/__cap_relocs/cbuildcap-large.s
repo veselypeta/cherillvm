@@ -3,17 +3,27 @@
 # RUN: ld.lld --local-caprelocs=cbuildcap %t.rv32.o -o %t.rv32
 
 # RUN: llvm-readobj --relocs %t.rv32 | FileCheck %s --check-prefix=RELOCS
+# RUN: llvm-objdump -s --section=.rela.dyn %t.rv32 | FileCheck %s --check-prefix=RELADYN
 # RUN: llvm-objdump -s --section=.captable %t.rv32 | FileCheck %s --check-prefix=CAPTAB
+# RUN: llvm-readelf -s %t.rv32 | FileCheck %s --check-prefix=SYM
 
 # RELOCS:      Relocations [
 # RELOCS-NEXT:   Section ({{[0-9]+}}) .rela.dyn {
 # RELOCS-NEXT:     0x12240 R_RISCV_CHERI_RELATIVE - 0x0
 # RELOCS-NEXT:   }
 
+#RELADYN: Contents of section .rela.dyn:
+#RELADYN-NEXT: 10200 
+#RELADYN-NEXT: 10210 00000000 00000000
+
 # CAPTAB: Contents of section .captable:
 # CAPTAB-NEXT: 12240 50320100 00000000 2b994d02 0070e201
 #                    [    address    ] [      meta     ]
+#                    address = 0x13250 -> matches symbol VA
 
+# SYM:      0000000000010200    24 NOTYPE  LOCAL  HIDDEN      1 __rela_dyn_start
+# SYM-NEXT: 0000000000010218     0 NOTYPE  LOCAL  HIDDEN      1 __rela_dyn_end
+# SYM:      0000000000013250  8193 OBJECT  GLOBAL DEFAULT     4 x
         .text
         .attribute      4, 16
         .attribute      5, "rv64i2p1_zcheripurecap0p9"
@@ -52,4 +62,8 @@ x:
 .global _start 
 _start:
    call foo 
+.weak __rela_dyn_start
+.hidden __rela_dyn_start
+.weak __rela_dyn_end
+.hidden __rela_dyn_end
 

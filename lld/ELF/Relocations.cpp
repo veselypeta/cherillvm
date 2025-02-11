@@ -891,7 +891,11 @@ template <class PltSection, class GotPltSection>
 static void addPltEntry(PltSection &plt, GotPltSection &gotPlt,
                         RelocationBaseSection &rel, RelType type, Symbol &sym) {
   plt.addEntry(sym);
-  if (config->isCheriAbi) {
+  if (config->isCheriAbi && config->emachine == EM_RISCV) {
+
+    in.cheriCapTable->addEntry(sym, R_CHERI_CAPABILITY_TABLE_INDEX_CALL, &plt,
+                               0);
+  } else if (config->isCheriAbi) {
     // TODO: More normal .got.plt rather than piggy-backing on .captable. We
     // pass R_CHERI_CAPABILITY_TABLE_INDEX rather than the more obvious
     // R_CHERI_CAPABILITY_TABLE_INDEX_CALL to force dynamic relocations into

@@ -17,6 +17,7 @@
 #include "llvm/Support/RISCVAttributes.h"
 #include "llvm/Support/RISCVISAInfo.h"
 #include "llvm/Support/TimeProfiler.h"
+#include "Cheri.h"
 
 using namespace llvm;
 using namespace llvm::object;
@@ -67,9 +68,8 @@ enum Op {
   SRLI = 0x5013,
   SUB = 0x40000033,
 
-  CIncOffsetImm = 0x201B,
+  CADDI = 0x201B,
   CLC = 0x400F,
-  CSub = 0x2800005b,
 };
 
 enum Reg {
@@ -116,7 +116,7 @@ RISCV::RISCV() {
   sizeRel = R_RISCV_CHERI_SIZE;
   cheriCapRel = R_RISCV_CHERI_CAPABILITY;
   // TODO: R_RISCV_CHERI_JUMP_SLOT in a separate .got.plt / .captable.plt
-  cheriCapCallRel = R_RISCV_CHERI_CAPABILITY;
+  cheriCapCallRel = R_RISCV_CHERI_JUMP_SLOT;
   if (config->is64) {
     symbolicRel = R_RISCV_64;
     tlsModuleIndexRel = R_RISCV_TLS_DTPMOD64;
@@ -136,6 +136,7 @@ RISCV::RISCV() {
 
   // .got.plt[0] = _dl_runtime_resolve, .got.plt[1] = link_map
   gotPltHeaderEntriesNum = 2;
+  cheriCapTableHeaderEntriesNum = 2;
 
   pltHeaderSize = 32;
   pltEntrySize = 16;
@@ -254,11 +255,12 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   // trapping instructions to ensure we don't accidentally end up trying to use
   // it. Ideally we would have a header size of 0, but isCheriAbi isn't known
   // in the constructor.
-  if (config->isCheriAbi) {
-    memset(buf, 0, pltHeaderSize);
-    return;
-  }
-  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt)
+  //if (config->isCheriAbi) {
+  //  memset(buf, 0, pltHeaderSize);
+  //  return;
+  //}
+
+  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt/.captable)
   // (c)sub t1, (c)t1, (c)t3
   // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
   // addi t1, t1, -pltHeaderSize-12; t1 = &.plt[i] - &.plt[0]
@@ -267,16 +269,17 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   // l[wdc] (c)t0, Ptrsize((c)t0); (c)t0 = link_map
   // (c)jr (c)t3
   // (if shift == 0): nop
-  uint32_t offset = in.gotPlt->getVA() - in.plt->getVA();
-  uint32_t ptrsub = config->isCheriAbi ? CSub : SUB;
+  uint32_t entryva =
+      config->isCheriAbi ? in.cheriCapTable->getVA() : in.gotPlt->getVA();
+  uint32_t offset = entryva - in.plt->getVA();
   uint32_t ptrload = config->isCheriAbi ? CLC : config->is64 ? LD : LW;
-  uint32_t ptraddi = config->isCheriAbi ? CIncOffsetImm : ADDI;
+  uint32_t ptraddi = config->isCheriAbi ? CADDI : ADDI;
   // Shift is log2(pltsize / ptrsize), which is 0 for CHERI-128 so skipped
   uint32_t shift = 2 - config->is64 - config->isCheriAbi;
   uint32_t ptrsize = config->isCheriAbi ? config->capabilitySize
                                         : config->wordsize;
   write32le(buf + 0, utype(AUIPC, X_T2, hi20(offset)));
-  write32le(buf + 4, rtype(ptrsub, X_T1, X_T1, X_T3));
+  write32le(buf + 4, rtype(SUB, X_T1, X_T1, X_T3));
   write32le(buf + 8, itype(ptrload, X_T3, X_T2, lo12(offset)));
   write32le(buf + 12, itype(ADDI, X_T1, X_T1, -target->pltHeaderSize - 12));
   write32le(buf + 16, itype(ptraddi, X_T0, X_T2, lo12(offset)));
