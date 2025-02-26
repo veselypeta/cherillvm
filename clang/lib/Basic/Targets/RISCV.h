@@ -59,6 +59,8 @@ protected:
   int CapSize = -1;
   bool HasCheri = false;
   bool CheriBoundVarArg = false;
+  bool CheriBoundMemArgCaller = false;
+  bool CheriBoundMemArgCallee = false;
   bool HasCheriISAv9Semantics = false;
   void setCapabilityABITypes() {
     IntPtrType = TargetInfo::SignedIntCap;
