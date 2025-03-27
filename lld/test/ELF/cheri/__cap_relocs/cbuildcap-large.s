@@ -17,7 +17,7 @@
 #RELADYN-NEXT: 10210 00000000 00000000
 
 # CAPTAB: Contents of section .captable:
-# CAPTAB-NEXT: 12240 50320100 00000000 2b994d02 0070f201
+# CAPTAB-NEXT: 12240 50320100 00000000 2b994d02 0070e201
 #                    [    address    ] [      meta     ]
 #                    address = 0x13250 -> matches symbol VA
 
