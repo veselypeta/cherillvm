@@ -765,8 +765,7 @@ uint32_t CheriCapTableSection::getIndex(const Symbol &sym,
           Twine(Entries.FirstIndex) + ": " +
           Twine(*it->second.Index - Entries.FirstIndex));
 #endif
-  return (*it->second.index - entries.firstIndex) +
-         (in.plt->isNeeded() ? target->cheriCapTableHeaderEntriesNum : 0);
+  return *it->second.index - entries.firstIndex;
 }
 
 uint32_t CheriCapTableSection::getDynTlsOffset(const Symbol &sym) const {
@@ -844,9 +843,6 @@ uint64_t CheriCapTableSection::assignIndices(uint64_t startIndex,
 
     uint32_t index = *cti.index;
     assert(index >= startIndex && index < startIndex + entries.size());
-    if (in.plt->isNeeded()) {
-      assert(index >= target->cheriCapTableHeaderEntriesNum);
-    }
     Symbol *targetSym = it.first;
 
     StringRef name = targetSym->getName();
@@ -915,9 +911,7 @@ uint64_t CheriCapTableSection::assignIndices(uint64_t startIndex,
 template <class ELFT>
 void CheriCapTableSection::assignValuesAndAddCapTableSymbols() {
   // First assign the global indices (which will usually be the only ones)
-  uint64_t assignedEntries =
-      partitionGlobalEntries() ? target->cheriCapTableHeaderEntriesNum : 0;
-  assignedEntries += assignIndices<ELFT>(assignedEntries, globalEntries, "");
+  uint64_t assignedEntries = assignIndices<ELFT>(0, globalEntries, "");
   if (LLVM_UNLIKELY(config->capTableScope != CapTableScopePolicy::All)) {
     assert(assignedEntries == 0 && "Should not have any global entries in"
                                    " per-file/per-function captable mode");

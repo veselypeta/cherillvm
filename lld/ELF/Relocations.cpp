@@ -892,9 +892,14 @@ static void addPltEntry(PltSection &plt, GotPltSection &gotPlt,
                         RelocationBaseSection &rel, RelType type, Symbol &sym) {
   plt.addEntry(sym);
   if (config->isCheriAbi && config->emachine == EM_RISCV) {
-
-    in.cheriCapTable->addEntry(sym, R_CHERI_CAPABILITY_TABLE_INDEX_CALL, &plt,
-                               0);
+    gotPlt.addEntry(sym);
+    rel.addReloc({type, &gotPlt, sym.getGotPltOffset(),
+                  sym.isPreemptible ? DynamicReloc::AgainstSymbol
+                                    : DynamicReloc::AddendOnlyWithTargetVA,
+                  sym, 0, R_ABS});
+    // TODO - add relative reloc for .got.plt entry to initialize capability 
+    // to point to .plt[0]. Currently this is fine as musl doesn't do full
+    // lazy-binding, but we will need it if we want glibc.
   } else if (config->isCheriAbi) {
     // TODO: More normal .got.plt rather than piggy-backing on .captable. We
     // pass R_CHERI_CAPABILITY_TABLE_INDEX rather than the more obvious

@@ -111,6 +111,8 @@ static uint32_t setLO12_S(uint32_t insn, uint32_t imm) {
 RISCV::RISCV() {
   copyRel = R_RISCV_COPY;
   pltRel = R_RISCV_JUMP_SLOT;
+  if (config->isCheriAbi)
+    pltRel = R_RISCV_CHERI_JUMP_SLOT;
   relativeRel = R_RISCV_RELATIVE;
   iRelativeRel = R_RISCV_IRELATIVE;
   sizeRel = R_RISCV_CHERI_SIZE;
@@ -136,11 +138,12 @@ RISCV::RISCV() {
 
   // .got.plt[0] = _dl_runtime_resolve, .got.plt[1] = link_map
   gotPltHeaderEntriesNum = 2;
-  cheriCapTableHeaderEntriesNum = 2;
 
   pltHeaderSize = 32;
   pltEntrySize = 16;
   ipltEntrySize = 16;
+  if (config->isCheriAbi)
+    gotEntrySize = getCapabilitySize();
 }
 
 static uint32_t getEFlags(InputFile *f) {
@@ -232,6 +235,10 @@ void RISCV::writeGotHeader(uint8_t *buf) const {
 }
 
 void RISCV::writeGotPlt(uint8_t *buf, const Symbol &s) const {
+  // Writing out the address into .got.plt doesn't matter, since 
+  // we need a proper reloc to initialize it as a capability.
+  if (config->isCheriAbi)
+    return;
   if (config->is64)
     write64le(buf, in.plt->getVA());
   else
@@ -248,19 +255,7 @@ void RISCV::writeIgotPlt(uint8_t *buf, const Symbol &s) const {
 }
 
 void RISCV::writePltHeader(uint8_t *buf) const {
-  // TODO: Remove once we have a CHERI .got.plt and R_RISCV_CHERI_JUMP_SLOT.
-  // Without those there can be no lazy binding support (though the former
-  // requirement can be relaxed provided .captable[0] is _dl_runtime_resolve,
-  // at least when the PLT is non-empty), so for now we emit a header full of
-  // trapping instructions to ensure we don't accidentally end up trying to use
-  // it. Ideally we would have a header size of 0, but isCheriAbi isn't known
-  // in the constructor.
-  //if (config->isCheriAbi) {
-  //  memset(buf, 0, pltHeaderSize);
-  //  return;
-  //}
-
-  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt/.captable)
+  // 1: auipc(c) (c)t2, %pcrel_hi(.got.plt)
   // (c)sub t1, (c)t1, (c)t3
   // l[wdc] (c)t3, %pcrel_lo(1b)((c)t2); (c)t3 = _dl_runtime_resolve
   // addi t1, t1, -pltHeaderSize-12; t1 = &.plt[i] - &.plt[0]
@@ -269,9 +264,7 @@ void RISCV::writePltHeader(uint8_t *buf) const {
   // l[wdc] (c)t0, Ptrsize((c)t0); (c)t0 = link_map
   // (c)jr (c)t3
   // (if shift == 0): nop
-  uint32_t entryva =
-      config->isCheriAbi ? in.cheriCapTable->getVA() : in.gotPlt->getVA();
-  uint32_t offset = entryva - in.plt->getVA();
+  uint32_t offset = in.gotPlt->getVA() - in.plt->getVA();
   uint32_t ptrload = config->isCheriAbi ? CLC : config->is64 ? LD : LW;
   uint32_t ptraddi = config->isCheriAbi ? CADDI : ADDI;
   // Shift is log2(pltsize / ptrsize), which is 0 for CHERI-128 so skipped
@@ -293,14 +286,12 @@ void RISCV::writePltHeader(uint8_t *buf) const {
 
 void RISCV::writePlt(uint8_t *buf, const Symbol &sym,
                      uint64_t pltEntryAddr) const {
-  // 1: auipc(c) (c)t3, %pcrel_hi(f@[.got.plt|.captable])
+  // 1: auipc(c) (c)t3, %pcrel_hi(f@[.got.plt])
   // l[wdc] (c)t3, %pcrel_lo(1b)((c)t3)
   // (c)jalr (c)t1, (c)t3
   // nop
   uint32_t ptrload = config->isCheriAbi ? CLC : config->is64 ? LD : LW;
-  uint32_t entryva = config->isCheriAbi ? sym.getCapTableVA(in.plt.get(), 0)
-                                        : sym.getGotPltVA();
-  uint32_t offset = entryva - pltEntryAddr;
+  uint32_t offset = sym.getGotPltVA() - pltEntryAddr;
   write32le(buf + 0, utype(AUIPC, X_T3, hi20(offset)));
   write32le(buf + 4, itype(ptrload, X_T3, X_T3, lo12(offset)));
   write32le(buf + 8, itype(JALR, X_T1, X_T3, 0));
