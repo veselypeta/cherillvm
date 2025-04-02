@@ -16035,7 +16035,7 @@ SDValue RISCVTargetLowering::LowerFormalArguments(
                             (HasMemArgs && UseBoundedMemArgsCallee));
   SDValue ArgRegArgs;
   if (UseCheriArgRegister){
-    Register VReg = MF.addLiveIn(Subtarget.getCheriBoundedArgReg(), &RISCV::GPCRRegClass);
+    Register VReg = MF.addLiveIn(RISCVABI::getCheriBoundedArgReg(), &RISCV::GPCRRegClass);
     ArgRegArgs = DAG.getCopyFromReg(Chain, DL, VReg, PtrVT);
   }
 
@@ -16516,10 +16516,11 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
           ISD::INTRINSIC_WO_CHAIN, DL, PtrVT,
           DAG.getConstant(Intrinsic::cheri_cap_perms_and, DL, XLenVT), VarArgs,
           DAG.getIntPtrConstant(PermMask, DL));
-      RegsToPass.push_back(std::make_pair(Subtarget.getCheriBoundedArgReg(), VarArgs));
+      RegsToPass.push_back(
+          std::make_pair(RISCVABI::getCheriBoundedArgReg(), VarArgs));
     } else {
       // No varargs passed, set C6 to null
-      RegsToPass.push_back(std::make_pair(Subtarget.getCheriBoundedArgReg(),
+      RegsToPass.push_back(std::make_pair(RISCVABI::getCheriBoundedArgReg(),
                                           DAG.getNullCapability(DL)));
     }
   }
@@ -16531,7 +16532,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
           "CHERI-RISCV memory argument passing",
           cheri::SetBoundsPointerSource::Stack, "memarg call bounds settings");
       RegsToPass.push_back(
-          std::make_pair(Subtarget.getCheriBoundedArgReg(), MemArgs));
+          std::make_pair(RISCVABI::getCheriBoundedArgReg(), MemArgs));
     } else {
       bool ShouldClearArgReg = IsVarArg;
       if (!ShouldClearArgReg && UseBoundeMemArgsCallee) {
@@ -16539,7 +16540,7 @@ SDValue RISCVTargetLowering::LowerCall(CallLoweringInfo &CLI,
         ShouldClearArgReg = !G || !G->getGlobal()->hasInternalLinkage();
       }
       if (ShouldClearArgReg) {
-        RegsToPass.push_back(std::make_pair(Subtarget.getCheriBoundedArgReg(),
+        RegsToPass.push_back(std::make_pair(RISCVABI::getCheriBoundedArgReg(),
                                             DAG.getNullCapability(DL)));
       }
     }
