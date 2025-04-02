@@ -482,7 +482,7 @@ inline static bool isCheriPureCapABI(ABI TargetABI) {
   }
 }
 // Returns the register holding shadow call stack pointer.
-MCRegister getSCSPReg();
+MCRegister getSCSPReg(ABI TargetABI);
 
 } // namespace RISCVABI
 
