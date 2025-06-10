@@ -227,6 +227,8 @@ void Ioctl::doInit() {
   addFunc("snd_hwdep_control_ioctl", 3);
   addFunc("snd_pcm_control_ioctl", 3);
   addFunc("snd_rawmidi_control_ioctl", 3);
+  /* Entries of xe_oa_user_extension_funcs[] array. */
+  addFunc("xe_oa_user_ext_set_property", 2);
 
   /* Blacklisted functions that are never ioctl functions. */
   addBlacklist("cdrom_ioctl_clear_options");
@@ -513,6 +515,8 @@ void Ioctl::doInit() {
   addFunc("fat_generic_ioctl", 2);
   addFunc("fat_ioctl_fitrim", 1);
   addFunc("fb_ioctl", 2);
+  addFunc("fcntl_set_rw_hint", 2);
+  addFunc("fcp_hwdep_ioctl", 3);
   addFunc("fd_ioctl", 3);
   addFunc("fd_locked_ioctl", 3);
   addFunc("ffs_ep0_ioctl", 2);
@@ -1040,6 +1044,36 @@ void Ioctl::doInit() {
   addFunc("xr_ioctl", 2);
   addFunc("xsdfec_dev_ioctl", 2);
   addFunc("zf_ioctl", 2);
+  addFunc("virtiovf_precopy_ioctl", 2);
+  addFunc("ntsync_obj_ioctl", 2);
+  addFunc("ntsync_char_ioctl", 2);
+  addFunc("xe_eu_stall_stream_ioctl", 2);
+  addFunc("iio_buffer_chrdev_ioctl", 2);
+  addFunc("procfs_procmap_ioctl", 2);
+  addFunc("f_hidg_ioctl", 2);
+  addFunc("dpi_dev_ioctl", 2);
+  addFunc("pidfd_ioctl", 2);
+  addFunc("vsock_ioctl", 2);
+  addFunc("snd_utimer_ioctl", 2);
+  addFunc("snd_compr_task_create", 1);
+  addFunc("snd_compr_task_seq", 1);
+  addFunc("snd_compr_task_start_ioctl", 1);
+  addFunc("snd_compr_task_seq", 1);
+  addFunc("snd_compr_task_status_ioctl", 1);
+  addFunc("xe_oa_ioctl", 2);
+  addFunc("fwctl_fops_ioctl", 2);
+  addFunc("exfat_ioctl_shutdown", 1);
+  addFunc("pps_gen_cdev_ioctl", 2);
+  addFunc("xe_eu_stall_stream_ioctl_locked", 2);
+  addFunc("xe_oa_ioctl_locked", 2);
+  addFunc("xe_oa_config_locked", 1);
+  addFunc("xe_oa_user_extensions", 2);
+  addFunc("xe_oa_status_locked", 1);
+  addFunc("xe_oa_info_locked", 1);
+  addFunc("pidfd_info", 2);
+  addFunc("xe_oa_remove_config_ioctl", 1);
+  addFunc("xe_oa_add_config_ioctl", 1);
+  addFunc("xe_oa_stream_open_ioctl", 1);
 }
 
 /*
