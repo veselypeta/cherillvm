@@ -64,7 +64,67 @@ define void @call_memcpy(ptr align 16 %dst, ptr align 16 %src) #0 {
 ;
 ; HYBRID-LABEL: @call_memcpy(
 ; HYBRID-NEXT:  entry:
-; HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DST:%.*]], ptr align 16 [[SRC:%.*]], i64 40, i1 false)
+; HYBRID-NEXT:    br label [[HEAD_START:%.*]]
+; HYBRID:       head.start:
+; HYBRID-NEXT:    [[SRC_ADDR:%.*]] = ptrtoint ptr [[SRC:%.*]] to i64
+; HYBRID-NEXT:    [[REM_ADDR:%.*]] = and i64 [[SRC_ADDR]], 15
+; HYBRID-NEXT:    [[TMP0:%.*]] = icmp ne i64 [[REM_ADDR]], 0
+; HYBRID-NEXT:    [[TMP1:%.*]] = and i1 [[TMP0]], true
+; HYBRID-NEXT:    br i1 [[TMP1]], label [[HEAD_LOOP:%.*]], label [[BODY_START:%.*]]
+; HYBRID:       head.loop:
+; HYBRID-NEXT:    [[TMP2:%.*]] = phi ptr [ [[SRC]], [[HEAD_START]] ], [ [[TMP5:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP3:%.*]] = phi ptr [ [[DST:%.*]], [[HEAD_START]] ], [ [[TMP7:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP4:%.*]] = phi i64 [ 40, [[HEAD_START]] ], [ [[DEC:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP5]] = getelementptr inbounds i8, ptr [[TMP2]], i64 1
+; HYBRID-NEXT:    [[TMP6:%.*]] = load i8, ptr [[TMP2]], align 1
+; HYBRID-NEXT:    [[TMP7]] = getelementptr inbounds i8, ptr [[TMP3]], i64 1
+; HYBRID-NEXT:    store i8 [[TMP6]], ptr [[TMP3]], align 1
+; HYBRID-NEXT:    [[DEC]] = sub i64 [[TMP4]], 1
+; HYBRID-NEXT:    [[SRC_ADDR1:%.*]] = ptrtoint ptr [[TMP5]] to i64
+; HYBRID-NEXT:    [[REM_ADDR2:%.*]] = and i64 [[SRC_ADDR1]], 15
+; HYBRID-NEXT:    [[TMP8:%.*]] = icmp ne i64 [[REM_ADDR2]], 0
+; HYBRID-NEXT:    [[TMP9:%.*]] = icmp ne i64 [[DEC]], 0
+; HYBRID-NEXT:    [[TMP10:%.*]] = and i1 [[TMP8]], [[TMP9]]
+; HYBRID-NEXT:    br i1 [[TMP10]], label [[HEAD_LOOP]], label [[BODY_START]]
+; HYBRID:       body.start:
+; HYBRID-NEXT:    [[TMP11:%.*]] = phi ptr [ [[SRC]], [[HEAD_START]] ], [ [[TMP5]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP12:%.*]] = phi ptr [ [[DST]], [[HEAD_START]] ], [ [[TMP7]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP13:%.*]] = phi i64 [ 40, [[HEAD_START]] ], [ [[DEC]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[DST_ADDR:%.*]] = ptrtoint ptr [[TMP12]] to i64
+; HYBRID-NEXT:    [[REM_ADDR3:%.*]] = and i64 [[DST_ADDR]], 15
+; HYBRID-NEXT:    [[TMP14:%.*]] = icmp eq i64 [[REM_ADDR3]], 0
+; HYBRID-NEXT:    [[TMP15:%.*]] = icmp ugt i64 [[TMP13]], 15
+; HYBRID-NEXT:    [[TMP16:%.*]] = select i1 [[TMP14]], i1 [[TMP15]], i1 false
+; HYBRID-NEXT:    br i1 [[TMP16]], label [[BODY_LOOP:%.*]], label [[TAIL_START:%.*]]
+; HYBRID:       body.loop:
+; HYBRID-NEXT:    [[TMP17:%.*]] = phi ptr [ [[TMP11]], [[BODY_START]] ], [ [[TMP21:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP18:%.*]] = phi ptr [ [[TMP12]], [[BODY_START]] ], [ [[TMP22:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP19:%.*]] = phi i64 [ [[TMP13]], [[BODY_START]] ], [ [[TMP23:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP20:%.*]] = load ptr addrspace(200), ptr [[TMP17]], align 16
+; HYBRID-NEXT:    [[TMP21]] = getelementptr inbounds ptr addrspace(200), ptr [[TMP17]], i64 1
+; HYBRID-NEXT:    store ptr addrspace(200) [[TMP20]], ptr [[TMP18]], align 16
+; HYBRID-NEXT:    [[TMP22]] = getelementptr inbounds ptr addrspace(200), ptr [[DST]], i64 1
+; HYBRID-NEXT:    [[TMP23]] = sub i64 [[TMP19]], 16
+; HYBRID-NEXT:    [[TMP24:%.*]] = icmp ugt i64 [[TMP23]], 15
+; HYBRID-NEXT:    br i1 [[TMP24]], label [[BODY_LOOP]], label [[TAIL_START]]
+; HYBRID:       tail.start:
+; HYBRID-NEXT:    [[TMP25:%.*]] = phi ptr [ [[TMP11]], [[BODY_START]] ], [ [[TMP21]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP26:%.*]] = phi ptr [ [[TMP12]], [[BODY_START]] ], [ [[TMP22]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP27:%.*]] = phi i64 [ [[TMP13]], [[BODY_START]] ], [ [[TMP23]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP28:%.*]] = icmp ugt i64 [[TMP27]], 0
+; HYBRID-NEXT:    br i1 [[TMP28]], label [[TAIL_LOOP:%.*]], label [[MEMCPY_SPLIT:%.*]]
+; HYBRID:       tail.loop:
+; HYBRID-NEXT:    [[TMP29:%.*]] = phi ptr [ [[TMP25]], [[TAIL_START]] ], [ [[TMP32:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP30:%.*]] = phi ptr [ [[TMP26]], [[TAIL_START]] ], [ [[TMP33:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP31:%.*]] = phi i64 [ [[TMP27]], [[TAIL_START]] ], [ [[TMP34:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP32]] = getelementptr inbounds i8, ptr [[TMP29]], i64 1
+; HYBRID-NEXT:    [[TMP33]] = getelementptr inbounds i8, ptr [[TMP30]], i64 1
+; HYBRID-NEXT:    [[TMP34]] = sub i64 [[TMP31]], 1
+; HYBRID-NEXT:    [[TMP35:%.*]] = load i8, ptr [[TMP29]], align 1
+; HYBRID-NEXT:    store i8 [[TMP35]], ptr [[TMP33]], align 1
+; HYBRID-NEXT:    [[TMP36:%.*]] = icmp ugt i64 [[TMP34]], 0
+; HYBRID-NEXT:    br i1 [[TMP36]], label [[TAIL_LOOP]], label [[MEMCPY_SPLIT]]
+; HYBRID:       memcpy-split:
 ; HYBRID-NEXT:    ret void
 ;
 entry:
@@ -91,7 +151,68 @@ define void @call_memcpy_variable(ptr align 16 %dst, ptr align 16 %src, i64 %len
 ;
 ; HYBRID-LABEL: @call_memcpy_variable(
 ; HYBRID-NEXT:  entry:
-; HYBRID-NEXT:    call void @llvm.memcpy.p0.p0.i64(ptr align 16 [[DST:%.*]], ptr align 16 [[SRC:%.*]], i64 [[LEN:%.*]], i1 false)
+; HYBRID-NEXT:    br label [[HEAD_START:%.*]]
+; HYBRID:       head.start:
+; HYBRID-NEXT:    [[SRC_ADDR:%.*]] = ptrtoint ptr [[SRC:%.*]] to i64
+; HYBRID-NEXT:    [[REM_ADDR:%.*]] = and i64 [[SRC_ADDR]], 15
+; HYBRID-NEXT:    [[TMP0:%.*]] = icmp ne i64 [[REM_ADDR]], 0
+; HYBRID-NEXT:    [[TMP1:%.*]] = icmp ne i64 [[LEN:%.*]], 0
+; HYBRID-NEXT:    [[TMP2:%.*]] = and i1 [[TMP0]], [[TMP1]]
+; HYBRID-NEXT:    br i1 [[TMP2]], label [[HEAD_LOOP:%.*]], label [[BODY_START:%.*]]
+; HYBRID:       head.loop:
+; HYBRID-NEXT:    [[TMP3:%.*]] = phi ptr [ [[SRC]], [[HEAD_START]] ], [ [[TMP6:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP4:%.*]] = phi ptr [ [[DST:%.*]], [[HEAD_START]] ], [ [[TMP8:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP5:%.*]] = phi i64 [ [[LEN]], [[HEAD_START]] ], [ [[DEC:%.*]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP6]] = getelementptr inbounds i8, ptr [[TMP3]], i64 1
+; HYBRID-NEXT:    [[TMP7:%.*]] = load i8, ptr [[TMP3]], align 1
+; HYBRID-NEXT:    [[TMP8]] = getelementptr inbounds i8, ptr [[TMP4]], i64 1
+; HYBRID-NEXT:    store i8 [[TMP7]], ptr [[TMP4]], align 1
+; HYBRID-NEXT:    [[DEC]] = sub i64 [[TMP5]], 1
+; HYBRID-NEXT:    [[SRC_ADDR1:%.*]] = ptrtoint ptr [[TMP6]] to i64
+; HYBRID-NEXT:    [[REM_ADDR2:%.*]] = and i64 [[SRC_ADDR1]], 15
+; HYBRID-NEXT:    [[TMP9:%.*]] = icmp ne i64 [[REM_ADDR2]], 0
+; HYBRID-NEXT:    [[TMP10:%.*]] = icmp ne i64 [[DEC]], 0
+; HYBRID-NEXT:    [[TMP11:%.*]] = and i1 [[TMP9]], [[TMP10]]
+; HYBRID-NEXT:    br i1 [[TMP11]], label [[HEAD_LOOP]], label [[BODY_START]]
+; HYBRID:       body.start:
+; HYBRID-NEXT:    [[TMP12:%.*]] = phi ptr [ [[SRC]], [[HEAD_START]] ], [ [[TMP6]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP13:%.*]] = phi ptr [ [[DST]], [[HEAD_START]] ], [ [[TMP8]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[TMP14:%.*]] = phi i64 [ [[LEN]], [[HEAD_START]] ], [ [[DEC]], [[HEAD_LOOP]] ]
+; HYBRID-NEXT:    [[DST_ADDR:%.*]] = ptrtoint ptr [[TMP13]] to i64
+; HYBRID-NEXT:    [[REM_ADDR3:%.*]] = and i64 [[DST_ADDR]], 15
+; HYBRID-NEXT:    [[TMP15:%.*]] = icmp eq i64 [[REM_ADDR3]], 0
+; HYBRID-NEXT:    [[TMP16:%.*]] = icmp ugt i64 [[TMP14]], 15
+; HYBRID-NEXT:    [[TMP17:%.*]] = select i1 [[TMP15]], i1 [[TMP16]], i1 false
+; HYBRID-NEXT:    br i1 [[TMP17]], label [[BODY_LOOP:%.*]], label [[TAIL_START:%.*]]
+; HYBRID:       body.loop:
+; HYBRID-NEXT:    [[TMP18:%.*]] = phi ptr [ [[TMP12]], [[BODY_START]] ], [ [[TMP22:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP19:%.*]] = phi ptr [ [[TMP13]], [[BODY_START]] ], [ [[TMP23:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP20:%.*]] = phi i64 [ [[TMP14]], [[BODY_START]] ], [ [[TMP24:%.*]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP21:%.*]] = load ptr addrspace(200), ptr [[TMP18]], align 16
+; HYBRID-NEXT:    [[TMP22]] = getelementptr inbounds ptr addrspace(200), ptr [[TMP18]], i64 1
+; HYBRID-NEXT:    store ptr addrspace(200) [[TMP21]], ptr [[TMP19]], align 16
+; HYBRID-NEXT:    [[TMP23]] = getelementptr inbounds ptr addrspace(200), ptr [[DST]], i64 1
+; HYBRID-NEXT:    [[TMP24]] = sub i64 [[TMP20]], 16
+; HYBRID-NEXT:    [[TMP25:%.*]] = icmp ugt i64 [[TMP24]], 15
+; HYBRID-NEXT:    br i1 [[TMP25]], label [[BODY_LOOP]], label [[TAIL_START]]
+; HYBRID:       tail.start:
+; HYBRID-NEXT:    [[TMP26:%.*]] = phi ptr [ [[TMP12]], [[BODY_START]] ], [ [[TMP22]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP27:%.*]] = phi ptr [ [[TMP13]], [[BODY_START]] ], [ [[TMP23]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP28:%.*]] = phi i64 [ [[TMP14]], [[BODY_START]] ], [ [[TMP24]], [[BODY_LOOP]] ]
+; HYBRID-NEXT:    [[TMP29:%.*]] = icmp ugt i64 [[TMP28]], 0
+; HYBRID-NEXT:    br i1 [[TMP29]], label [[TAIL_LOOP:%.*]], label [[MEMCPY_SPLIT:%.*]]
+; HYBRID:       tail.loop:
+; HYBRID-NEXT:    [[TMP30:%.*]] = phi ptr [ [[TMP26]], [[TAIL_START]] ], [ [[TMP33:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP31:%.*]] = phi ptr [ [[TMP27]], [[TAIL_START]] ], [ [[TMP34:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP32:%.*]] = phi i64 [ [[TMP28]], [[TAIL_START]] ], [ [[TMP35:%.*]], [[TAIL_LOOP]] ]
+; HYBRID-NEXT:    [[TMP33]] = getelementptr inbounds i8, ptr [[TMP30]], i64 1
+; HYBRID-NEXT:    [[TMP34]] = getelementptr inbounds i8, ptr [[TMP31]], i64 1
+; HYBRID-NEXT:    [[TMP35]] = sub i64 [[TMP32]], 1
+; HYBRID-NEXT:    [[TMP36:%.*]] = load i8, ptr [[TMP30]], align 1
+; HYBRID-NEXT:    store i8 [[TMP36]], ptr [[TMP34]], align 1
+; HYBRID-NEXT:    [[TMP37:%.*]] = icmp ugt i64 [[TMP35]], 0
+; HYBRID-NEXT:    br i1 [[TMP37]], label [[TAIL_LOOP]], label [[MEMCPY_SPLIT]]
+; HYBRID:       memcpy-split:
 ; HYBRID-NEXT:    ret void
 ;
 entry:

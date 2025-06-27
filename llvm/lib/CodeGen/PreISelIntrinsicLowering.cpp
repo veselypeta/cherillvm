@@ -201,10 +201,6 @@ bool PreISelIntrinsicLowering::expandMemIntrinsicUses(Function &F) const {
       auto *Memcpy = cast<MemCpyInst>(Inst);
       Function *ParentFunc = Memcpy->getFunction();
       const TargetTransformInfo &TTI = LookupTTI(*ParentFunc);
-      // TODO: we can't expand memcpy for CHERI targets yet.
-      // See https://github.com/CTSRD-CHERI/llvm-project/issues/753
-      if (Memcpy->getModule()->getDataLayout().hasCheriCapabilities())
-        break;
       if (shouldExpandMemIntrinsicWithSize(Memcpy->getLength(), TTI)) {
         if (UseMemIntrinsicLibFunc &&
             LookupLibInfo(*ParentFunc).has(LibFunc_memcpy))

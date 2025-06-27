@@ -11,6 +11,7 @@
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
@@ -19,6 +20,214 @@
 #define DEBUG_TYPE "lower-mem-intrinsics"
 
 using namespace llvm;
+
+static void createMemCpyLoopPreserveTags(Instruction *InsertBefore, Value *Src,
+                                         Value *Dst, Value *CopyLen) {
+  /// For a CHERI memcpy we need to use capability copies whenver possible
+  /// i.e. lc/sc instruction as these will preserve tags. This can only be
+  /// done when the src/dst are capability aligned.
+  ///
+  /// Thus we need to do a memcpy in three stages
+  /// 1. Byte-copy up to capability align of src                   (head)
+  /// 2. Cap-copy if src/dst are aligned and remaining size allows (body)
+  /// 3. Byte-copy the remaining bytes                             (tail)
+
+  BasicBlock *PreLoopBB = InsertBefore->getParent();
+  Function *ParentFunc = PreLoopBB->getParent();
+  LLVMContext &Ctx = ParentFunc->getContext();
+  const DataLayout &DL = ParentFunc->getParent()->getDataLayout();
+
+  assert(DL.isFatPointer(200) && "addrspace(200) should be fat pointer.");
+  Type *CapPtrTy = PointerType::get(Ctx, 200);
+  const size_t CapSize = DL.getPointerTypeSize(CapPtrTy);
+  Type *IndexTy = DL.getIndexType(CapPtrTy);
+
+  Type *CopyLenType = CopyLen->getType();
+  Value *Zero = ConstantInt::get(CopyLenType, 0);
+  Value *One = ConstantInt::get(CopyLenType, 1);
+  // If the src/dst are already cap-aligned we don't need to do
+  // anything
+
+  // Split the Instruction
+  BasicBlock *PostLoopBB =
+      PreLoopBB->splitBasicBlock(InsertBefore, "memcpy-split");
+
+  // Create all the necessary BB for capability memcpy
+  BasicBlock *HeadStartBB =
+      BasicBlock::Create(Ctx, "head.start", ParentFunc, PostLoopBB);
+  PreLoopBB->getTerminator()->setSuccessor(0, HeadStartBB);
+  BasicBlock *HeadLoopBB =
+      BasicBlock::Create(Ctx, "head.loop", ParentFunc, PostLoopBB);
+  BasicBlock *BodyStartBB =
+      BasicBlock::Create(Ctx, "body.start", ParentFunc, PostLoopBB);
+  BasicBlock *BodyLoopBB =
+      BasicBlock::Create(Ctx, "body.loop", ParentFunc, PostLoopBB);
+  BasicBlock *TailStartBB =
+      BasicBlock::Create(Ctx, "tail.start", ParentFunc, PostLoopBB);
+  BasicBlock *TailLoopBB =
+      BasicBlock::Create(Ctx, "tail.loop", ParentFunc, PostLoopBB);
+
+  {
+    IRBuilder<> HeadStartBuilder(HeadStartBB);
+    Value *SrcAddr = HeadStartBuilder.CreatePtrToInt(Src, IndexTy, "src.addr");
+    Value *SrcRem =
+        HeadStartBuilder.CreateAnd(SrcAddr, CapSize - 1, "rem.addr");
+    Value *RemGTZ = HeadStartBuilder.CreateICmpNE(SrcRem, Zero);
+    Value *NIsZero = HeadStartBuilder.CreateICmpNE(CopyLen, Zero);
+    Value *HeadLoopCond = HeadStartBuilder.CreateAnd(RemGTZ, NIsZero);
+    HeadStartBuilder.CreateCondBr(HeadLoopCond, HeadLoopBB, BodyStartBB);
+  }
+
+  Value *SrcPostHeadLoop, *DstPostHeadLoop, *LenPostHeadLoop;
+  {
+    IRBuilder<> HeadLoopBuilder(HeadLoopBB);
+    PHINode *SrcPhi = HeadLoopBuilder.CreatePHI(Src->getType(), 2);
+    SrcPhi->addIncoming(Src, HeadStartBB);
+    PHINode *DstPhi = HeadLoopBuilder.CreatePHI(Dst->getType(), 2);
+    DstPhi->addIncoming(Dst, HeadStartBB);
+    PHINode *LenPhi = HeadLoopBuilder.CreatePHI(CopyLen->getType(), 2);
+    LenPhi->addIncoming(CopyLen, HeadStartBB);
+
+    Value *SrcGEP =
+        HeadLoopBuilder.CreateInBoundsGEP(Type::getInt8Ty(Ctx), SrcPhi, {One});
+    Value *SrcVal = HeadLoopBuilder.CreateLoad(Type::getInt8Ty(Ctx), SrcPhi);
+    Value *DstGEP =
+        HeadLoopBuilder.CreateInBoundsGEP(Type::getInt8Ty(Ctx), DstPhi, {One});
+    HeadLoopBuilder.CreateStore(SrcVal, DstPhi);
+    SrcPhi->addIncoming(SrcGEP, HeadLoopBB);
+    DstPhi->addIncoming(DstGEP, HeadLoopBB);
+
+    Value *LenDecr = HeadLoopBuilder.CreateSub(LenPhi, One, "dec");
+    LenPhi->addIncoming(LenDecr, HeadLoopBB);
+    Value *SrcAddr =
+        HeadLoopBuilder.CreatePtrToInt(SrcGEP, IndexTy, "src.addr");
+
+    Value *SrcRem = HeadLoopBuilder.CreateAnd(SrcAddr, CapSize - 1, "rem.addr");
+    Value *LoopCond1 = HeadLoopBuilder.CreateICmpNE(SrcRem, Zero);
+    Value *LoopCond2 = HeadLoopBuilder.CreateICmpNE(LenDecr, Zero);
+    Value *LoopCond = HeadLoopBuilder.CreateAnd(LoopCond1, LoopCond2);
+    HeadLoopBuilder.CreateCondBr(LoopCond, HeadLoopBB, BodyStartBB);
+
+    // phi values to propagate
+    SrcPostHeadLoop = SrcGEP;
+    DstPostHeadLoop = DstGEP;
+    LenPostHeadLoop = LenDecr;
+  }
+
+  Value *SrcPostBodyStart, *DstPostBodyStart, *LenPostBodyStart;
+  {
+    IRBuilder<> BodyStartBuilder(BodyStartBB);
+    PHINode *SrcPhi = BodyStartBuilder.CreatePHI(Src->getType(), 2);
+    SrcPhi->addIncoming(Src, HeadStartBB);
+    SrcPhi->addIncoming(SrcPostHeadLoop, HeadLoopBB);
+    SrcPostBodyStart = SrcPhi;
+
+    PHINode *DstPhi = BodyStartBuilder.CreatePHI(Dst->getType(), 2);
+    DstPhi->addIncoming(Dst, HeadStartBB);
+    DstPhi->addIncoming(DstPostHeadLoop, HeadLoopBB);
+    DstPostBodyStart = DstPhi;
+
+    PHINode *LenPhi = BodyStartBuilder.CreatePHI(CopyLen->getType(), 2);
+    LenPhi->addIncoming(CopyLen, HeadStartBB);
+    LenPhi->addIncoming(LenPostHeadLoop, HeadLoopBB);
+    LenPostBodyStart = LenPhi;
+
+    // Src should now be cap-aligned. Check if dst is also cap aligned.
+    Value *DstAddr = BodyStartBuilder.CreatePtrToInt(DstPhi, IndexTy, "dst.addr");
+    Value *DstRem =
+        BodyStartBuilder.CreateAnd(DstAddr, CapSize - 1, "rem.addr");
+    Value *DstCapAligned = BodyStartBuilder.CreateICmpEQ(DstRem, Zero);
+    Value *L = BodyStartBuilder.CreateICmpUGT(
+        LenPhi, ConstantInt::get(LenPhi->getType(), CapSize - 1));
+    Value *AlignOrLen = BodyStartBuilder.CreateSelect(
+        DstCapAligned, L, BodyStartBuilder.getFalse());
+    BodyStartBuilder.CreateCondBr(AlignOrLen, BodyLoopBB, TailStartBB);
+  }
+
+  Value *SrcPostBodyLoop, *DstPostBodyLoop, *LenPostBodyLoop;
+  {
+    IRBuilder<> BodyLoopBuilder(BodyLoopBB);
+    PHINode *SrcPhi = BodyLoopBuilder.CreatePHI(Src->getType(), 2);
+    SrcPhi->addIncoming(SrcPostBodyStart, BodyStartBB);
+    PHINode *DstPhi = BodyLoopBuilder.CreatePHI(Dst->getType(), 2);
+    DstPhi->addIncoming(DstPostBodyStart, BodyStartBB);
+    PHINode *LenPhi = BodyLoopBuilder.CreatePHI(CopyLen->getType(), 2);
+    LenPhi->addIncoming(LenPostBodyStart, BodyStartBB);
+
+    Value *SrcVal =
+        BodyLoopBuilder.CreateAlignedLoad(CapPtrTy, SrcPhi, Align(CapSize));
+    Value *SrcGEP = BodyLoopBuilder.CreateInBoundsGEP(CapPtrTy, SrcPhi, {One});
+    BodyLoopBuilder.CreateAlignedStore(SrcVal, DstPhi, Align(CapSize));
+    Value *DstGEP = BodyLoopBuilder.CreateInBoundsGEP(CapPtrTy, Dst, {One});
+    Value *DecrLen = BodyLoopBuilder.CreateSub(
+        LenPhi, ConstantInt::get(CopyLen->getType(), CapSize));
+
+    SrcPhi->addIncoming(SrcGEP, BodyLoopBB);
+    DstPhi->addIncoming(DstGEP, BodyLoopBB);
+    LenPhi->addIncoming(DecrLen, BodyLoopBB);
+
+    Value *CmpLen = BodyLoopBuilder.CreateICmpUGT(
+        DecrLen, ConstantInt::get(CopyLen->getType(), CapSize - 1));
+    BodyLoopBuilder.CreateCondBr(CmpLen, BodyLoopBB, TailStartBB);
+
+    SrcPostBodyLoop = SrcGEP;
+    DstPostBodyLoop = DstGEP;
+    LenPostBodyLoop = DecrLen;
+  }
+
+  Value *SrcPostTailStart, *DstPostTailStart, *LenPostTailStart;
+  {
+    IRBuilder<> TailStartBuilder(TailStartBB);
+    PHINode *SrcPhi = TailStartBuilder.CreatePHI(Src->getType(), 2);
+    SrcPhi->addIncoming(SrcPostBodyStart, BodyStartBB);
+    SrcPhi->addIncoming(SrcPostBodyLoop, BodyLoopBB);
+
+    PHINode *DstPhi = TailStartBuilder.CreatePHI(Dst->getType(), 2);
+    DstPhi->addIncoming(DstPostBodyStart, BodyStartBB);
+    DstPhi->addIncoming(DstPostBodyLoop, BodyLoopBB);
+
+    PHINode *LenPhi = TailStartBuilder.CreatePHI(CopyLen->getType(), 2);
+    LenPhi->addIncoming(LenPostBodyStart, BodyStartBB);
+    LenPhi->addIncoming(LenPostBodyLoop, BodyLoopBB);
+
+    Value *Cond = TailStartBuilder.CreateICmpUGT(LenPhi, Zero);
+
+    TailStartBuilder.CreateCondBr(Cond, TailLoopBB, PostLoopBB);
+
+    SrcPostTailStart = SrcPhi;
+    DstPostTailStart = DstPhi;
+    LenPostTailStart = LenPhi;
+  }
+
+  {
+    IRBuilder<> TailLoopBuilder(TailLoopBB);
+    PHINode *SrcPHI = TailLoopBuilder.CreatePHI(Src->getType(), 2);
+    SrcPHI->addIncoming(SrcPostTailStart, TailStartBB);
+
+    PHINode *DstPHI = TailLoopBuilder.CreatePHI(Dst->getType(), 2);
+    DstPHI->addIncoming(DstPostTailStart, TailStartBB);
+
+    PHINode *LenPHI = TailLoopBuilder.CreatePHI(CopyLen->getType(), 2);
+    LenPHI->addIncoming(LenPostTailStart, TailStartBB);
+
+    Value *SrcGEP =
+        TailLoopBuilder.CreateInBoundsGEP(Type::getInt8Ty(Ctx), SrcPHI, {One});
+    Value *DstGEP =
+        TailLoopBuilder.CreateInBoundsGEP(Type::getInt8Ty(Ctx), DstPHI, {One});
+    Value *LenDecr = TailLoopBuilder.CreateSub(LenPHI, One);
+    SrcPHI->addIncoming(SrcGEP, TailLoopBB);
+    DstPHI->addIncoming(DstGEP, TailLoopBB);
+    LenPHI->addIncoming(LenDecr, TailLoopBB);
+
+    Value *SrcVal = TailLoopBuilder.CreateLoad(Type::getInt8Ty(Ctx), SrcPHI);
+    TailLoopBuilder.CreateStore(SrcVal, DstGEP);
+
+    Value *Cond = TailLoopBuilder.CreateICmpUGT(LenDecr, Zero);
+    TailLoopBuilder.CreateCondBr(Cond, TailLoopBB, PostLoopBB);
+  }
+
+  return;
+}
 
 void llvm::createMemCpyLoopKnownSize(
     Instruction *InsertBefore, Value *SrcAddr, Value *DstAddr,
@@ -530,6 +739,11 @@ void llvm::expandMemCpyAsLoop(MemCpyInst *Memcpy,
                               const TargetTransformInfo &TTI,
                               ScalarEvolution *SE) {
   bool CanOverlap = canOverlap(Memcpy, SE);
+  const DataLayout &DL = Memcpy->getModule()->getDataLayout();
+  if (DL.hasCheriCapabilities())
+    return createMemCpyLoopPreserveTags(Memcpy, Memcpy->getRawSource(),
+                                        Memcpy->getRawDest(),
+                                        Memcpy->getLength());
   if (ConstantInt *CI = dyn_cast<ConstantInt>(Memcpy->getLength())) {
     createMemCpyLoopKnownSize(
         /* InsertBefore */ Memcpy,
