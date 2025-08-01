@@ -780,3 +780,16 @@
 // RUN: -march=rv64i_zacas1p0 -x c -E -dM %s \
 // RUN: -o - | FileCheck --check-prefix=CHECK-ZACAS-EXT %s
 // CHECK-ZACAS-EXT: __riscv_zacas 1000000{{$}}
+
+// RUN: %clang -target riscv64-unknown-freebsd \
+// RUN: -march=rv64imafdcy -mabi=l64pc128d \
+// RUN: -x c -E -dM %s -o - \
+// RUN: | FileCheck --check-prefix=CHECK-RVY %s
+// CHECK-RVY: __riscv_y 9000
+
+// RUN: %clang -target riscv64-unknown-freebsd \
+// RUN: -march=rv64imafdc_zhybrid -mabi=l64pc128d \
+// RUN: -x c -E -dM %s -o - \
+// RUN: | FileCheck --check-prefix=CHECK-ZHYBRID %s
+// CHECK-ZHYBRID: __riscv_y 9000
+// CHECK-ZHYBRID: __riscv_zhybrid 9000
