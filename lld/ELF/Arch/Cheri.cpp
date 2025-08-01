@@ -372,6 +372,7 @@ void CheriCapRelocsSection::writeToImpl(uint8_t *buf) {
       if (isGnuIFunc)
         permissions |= CaptablePermissions<ELFT>::indirect;
     } else if (os) {
+      (void)isTls;
       assert(!isTls);
       // if ((OS->getPhdrFlags() & PF_W) == 0) {
       if (((os->flags & SHF_WRITE) == 0) || isRelroSection(os)) {
