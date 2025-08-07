@@ -275,7 +275,7 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
     // Define macros for compatibility.
     if (ISAInfo->hasExtension("y"))
       Builder.defineMacro("__riscv_zcheripurecap", "9000");
-    if (ISAInfo->hasExtension("zhybrid"))
+    if (ISAInfo->hasExtension("zyhybrid"))
       Builder.defineMacro("__riscv_zcherihybrid", "9000");
   }
 

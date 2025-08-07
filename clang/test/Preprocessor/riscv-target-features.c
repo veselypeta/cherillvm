@@ -788,8 +788,8 @@
 // CHECK-RVY: __riscv_y 9000
 
 // RUN: %clang -target riscv64-unknown-freebsd \
-// RUN: -march=rv64imafdc_zhybrid -mabi=l64pc128d \
+// RUN: -march=rv64imafdc_zyhybrid -mabi=l64pc128d \
 // RUN: -x c -E -dM %s -o - \
-// RUN: | FileCheck --check-prefix=CHECK-ZHYBRID %s
-// CHECK-ZHYBRID: __riscv_y 9000
-// CHECK-ZHYBRID: __riscv_zhybrid 9000
+// RUN: | FileCheck --check-prefix=CHECK-ZYHYBRID %s
+// CHECK-ZYHYBRID: __riscv_y 9000
+// CHECK-ZYHYBRID: __riscv_zyhybrid 9000

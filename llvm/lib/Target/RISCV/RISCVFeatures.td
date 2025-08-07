@@ -829,15 +829,48 @@ def HasCheriRVC : Predicate<"Subtarget->enableCheriRVCInstrs()">,
                   AssemblerPredicate<(all_of (not FeatureCheriNoRVC)),
                                      "CHERI RVC Instructions">;
 
+// RVY Features //
+def FeatureStdExtY : SubtargetFeature<"y", "HasStdExtY", "true",
+                     "'y' (CHERI aware Instructions)", []>;
+
+def HasStdExtY: Predicate<"Subtarget->hasStdExtY()">,
+                          AssemblerPredicate<(all_of FeatureStdExtY),
+                          "'y' (CHERI aware Instructions)">;
+
+def HasCheriOrRVY
+    : Predicate<"Subtarget->hasCheri() || Subtarget->hasStdExtY()">,
+                AssemblerPredicate<(any_of FeatureCheri, FeatureStdExtY),
+                "'y' (CHERI aware Instructions) or"
+                "'xcheri' Implements CHERI extension">;
+
+def FeatureStdExtZYHybrid
+    : SubtargetFeature<"zyhybrid", "HasStdExtZYHybrid", "true",
+                       "'zyhybrid' (Backwards compatiblity for 'y' with RISCV)",
+                       [FeatureStdExtY]>;
+
+def HasStdExtZYHybrid
+    : Predicate<"Subtarget->hasStdExtZYHybrid()">,
+                AssemblerPredicate<(all_of FeatureStdExtZYHybrid),
+                "'zyhybrid' (Backwards compatiblity for 'y' with RISCV)">;
+
+def FeatureStdExtZish4add
+    : SubtargetFeature<"zish4add", "HasStdExtZish4add", "true",
+                       "'zish4add' (Address Generation Instructions for wide-pointers.)">;
+
+def HasStdExtZish4add
+    : Predicate<"Subtarget->hasStdExtZish4add()">,
+                 AssemblerPredicate<(all_of FeatureStdExtZish4add),
+                 "'zish4add' (Address Generation Instructions for wide-pointers.)">;
+
 def FeatureCapMode
     : SubtargetFeature<"cap-mode", "IsCapMode", "true",
-                       "Capability mode">;
+                       "Capability Pointer mode">;
 def IsCapMode  : Predicate<"Subtarget->isCapMode()">,
                            AssemblerPredicate<(all_of FeatureCapMode),
-                           "Capability Mode">;
+                           "Capability Pointer Mode">;
 def NotCapMode : Predicate<"!Subtarget->isCapMode()">,
                            AssemblerPredicate<(all_of (not FeatureCapMode)),
-                           "Not Capability Mode">;
+                           "Integer Pointer Mode">;
 
 def IsPureCapABI
     : Predicate<"RISCVABI::isCheriPureCapABI(Subtarget->getTargetABI())">;
