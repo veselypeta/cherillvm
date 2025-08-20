@@ -622,3 +622,34 @@ let Predicates = [HasStdExtY, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode] in {
 def : CompressPat<(CSY GPCR:$rs2, CSP:$rs1, uimm9_lsb000:$imm),
                   (C_CSCCSP_64 GPCR:$rs2, CSP:$rs1, uimm9_lsb000:$imm)>;
 } // Predicates = [HasStdExtY, HasCheriRVC, HasStdExtC, IsRV32, IsCapMode]
+
+//===----------------------------------------------------------------------===//
+// Cheri Hypervisor extensions.
+//===----------------------------------------------------------------------===//
+
+let DecoderNamespace = "CapModeOnly_" in {
+let Predicates = [HasStdExtH, HasStdExtY, IsCapMode] in {
+def CHLV_B   : CHLoad_r<0b0110000, 0b00000, "hlv.b">, Sched<[]>;
+def CHLV_BU  : CHLoad_r<0b0110000, 0b00001, "hlv.bu">, Sched<[]>;
+def CHLV_H   : CHLoad_r<0b0110010, 0b00000, "hlv.h">, Sched<[]>;
+def CHLV_HU  : CHLoad_r<0b0110010, 0b00001, "hlv.hu">, Sched<[]>;
+def CHLVX_HU : CHLoad_r<0b0110010, 0b00011, "hlvx.hu">, Sched<[]>;
+def CHLV_W   : CHLoad_r<0b0110100, 0b00000, "hlv.w">, Sched<[]>;
+def CHLVX_WU : CHLoad_r<0b0110100, 0b00011, "hlvx.wu">, Sched<[]>;
+def CHLV_C   : CHLoad_r<0b0111000, 0b00000, "hlv.c">, Sched<[]>;
+def CHSV_B   : CHStore_rr<0b0110001, "hsv.b">, Sched<[]>;
+def CHSV_H   : CHStore_rr<0b0110011, "hsv.h">, Sched<[]>;
+def CHSV_W   : CHStore_rr<0b0110101, "hsv.w">, Sched<[]>;
+def CHSV_C   : CHStore_rr<0b0111001, "hsv.c">, Sched<[]>;
+}
+let Predicates = [IsRV64, HasStdExtH, HasStdExtY, IsCapMode] in {
+def CHLV_WU  : CHLoad_r<0b0110100, 0b00001, "hlv.wu">, Sched<[]>;
+def CHLV_D   : CHLoad_r<0b0110110, 0b00000, "hlv.d">, Sched<[]>;
+def CHSV_D   : CHStore_rr<0b0110111, "hsv.d">, Sched<[]>;
+}
+}
+
+let Predicates = [HasStdExtH, HasStdExtY, NotCapMode] in {
+def HLV_C    : CHLoad_r<0b0111000, 0b00000, "hlv.c", GPRMemZeroOffset>, Sched<[]>;
+def HSV_C    : CHStore_rr<0b0111001, "hsv.c", GPRMemZeroOffset>, Sched<[]>;
+}
