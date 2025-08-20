@@ -876,3 +876,60 @@ def : Pat<(cptradd GPCR:$rs2, (shl (and (XLenVT GPR:$rs1), 0xFFFFFFFF), (i64 3))
           (C_SH3ADD_UW GPR:$rs1, GPCR:$rs2)>;
 
 } // Predicates = [HasStdExtZba, HasCheriOrRVY, IsRV64, IsCapMode]
+
+//===----------------------------------------------------------------------===//
+// Zish4add
+//===----------------------------------------------------------------------===//
+//
+// Instructions
+let Predicates = [HasStdExtZish4add, IsRV64, IsCapMode], DecoderNamespace = "CapModeOnly_" in {
+def C_SH4ADD : C_ALU_rr<0b0010000, 0b111, "sh4add">,
+               Sched<[WriteSHXADD, ReadSHXADD, ReadSHXADD]>;
+}
+
+let Predicates = [HasStdExtZish4add, IsRV64, NotCapMode] in {
+def SH4ADD   : ALU_rr<0b0010000, 0b111, "sh4add">,
+               Sched<[WriteSHXADD, ReadSHXADD, ReadSHXADD]>;
+}
+
+// Codegen patterns
+
+let Predicates = [HasStdExtZish4add, IsRV64, NotCapMode] in {
+def : Pat<(add (shl GPR:$rs1, (XLenVT 4)), non_imm12:$rs2),
+          (SH4ADD GPR:$rs1, GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 272)), GPR:$rs2),
+          (SH4ADD (SH4ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+
+}
+
+let Predicates = [HasStdExtZish4add, HasStdExtZba, NotCapMode, IsRV64] in {
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 34)), GPR:$rs2),
+          (SH1ADD (SH4ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 68)), GPR:$rs2),
+          (SH2ADD (SH4ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 136)), GPR:$rs2),
+          (SH3ADD (SH4ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 48)), GPR:$rs2),
+          (SH4ADD (SH1ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 80)), GPR:$rs2),
+          (SH4ADD (SH2ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT 144)), GPR:$rs2),
+          (SH4ADD (SH3ADD GPR:$rs1, GPR:$rs1), GPR:$rs2)>;
+}
+
+let Predicates = [HasStdExtZish4add, IsRV64, IsCapMode] in {
+def : Pat<(cptradd GPCR:$rs2, (shl (XLenVT GPR:$rs1), (XLenVT 4))),
+          (C_SH4ADD GPR:$rs1, GPCR:$rs2)>;
+def : Pat<(add (shl GPR:$rs1, (XLenVT 4)), non_imm12:$rs2),
+          (XLenVT (EXTRACT_SUBREG (C_SH4ADD GPR:$rs1, (SUBREG_TO_REG GPCR, $rs2, sub_cap_addr)), sub_cap_addr))>;
+defm : ZbaMultPat<272, C_SH4ADD, C_SH4ADD>;
+}
+
+let Predicates = [HasStdExtZish4add, HasStdExtZba, IsCapMode, IsRV64] in {
+defm : ZbaMultPat<34 , C_SH1ADD, C_SH4ADD>;
+defm : ZbaMultPat<68 , C_SH2ADD, C_SH4ADD>;
+defm : ZbaMultPat<136, C_SH3ADD, C_SH4ADD>;
+defm : ZbaMultPat<48 , C_SH4ADD, C_SH1ADD>;
+defm : ZbaMultPat<80 , C_SH4ADD, C_SH2ADD>;
+defm : ZbaMultPat<144, C_SH4ADD, C_SH3ADD>;
+}

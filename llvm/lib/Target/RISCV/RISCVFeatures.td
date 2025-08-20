@@ -853,6 +853,15 @@ def HasStdExtZYHybrid
                 AssemblerPredicate<(all_of FeatureStdExtZYHybrid),
                 "'zyhybrid' (Backwards compatiblity for 'y' with RISCV)">;
 
+def FeatureStdExtZish4add
+    : SubtargetFeature<"zish4add", "HasStdExtZish4add", "true",
+                       "'zish4add' (Address Generation Instructions for wide-pointers.)">;
+
+def HasStdExtZish4add
+    : Predicate<"Subtarget->hasStdExtZish4add()">,
+                 AssemblerPredicate<(all_of FeatureStdExtZish4add),
+                 "'zish4add' (Address Generation Instructions for wide-pointers.)">;
+
 def FeatureCapMode
     : SubtargetFeature<"cap-mode", "IsCapMode", "true",
                        "Capability mode">;

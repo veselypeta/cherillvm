@@ -123,6 +123,8 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"zihintpause", RISCVExtensionVersion{2, 0}},
     {"zihpm", RISCVExtensionVersion{1, 0}},
 
+    {"zish4add", RISCVExtensionVersion{0, 9}},
+
     {"zk", RISCVExtensionVersion{1, 0}},
     {"zkn", RISCVExtensionVersion{1, 0}},
     {"zknd", RISCVExtensionVersion{1, 0}},
