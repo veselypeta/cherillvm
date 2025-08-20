@@ -793,3 +793,86 @@ def : InstAlias<"c.lh $rd, (${rs1})", (C_CLH GPRC:$rd, GPCRC:$rs1, 0)>;
 def : InstAlias<"c.sb $rd, (${rs1})", (C_CSB GPRC:$rd, GPCRC:$rs1, 0)>;
 def : InstAlias<"c.sh $rd, (${rs1})", (C_CSH GPRC:$rd, GPCRC:$rs1, 0)>;
 }
+
+//===----------------------------------------------------------------------===//
+// RISCV CHERI Zba extension
+//===----------------------------------------------------------------------===//
+
+let DecoderNamespace = "CapModeOnly_" in {
+
+let Predicates = [HasStdExtZba, HasCheriOrRVY, IsCapMode] in {
+def C_SH1ADD : C_ALU_rr<0b0010000, 0b010, "sh1add">,
+             Sched<[WriteSHXADD, ReadSHXADD, ReadSHXADD]>;
+def C_SH2ADD : C_ALU_rr<0b0010000, 0b100, "sh2add">,
+             Sched<[WriteSHXADD, ReadSHXADD, ReadSHXADD]>;
+def C_SH3ADD : C_ALU_rr<0b0010000, 0b110, "sh3add">,
+             Sched<[WriteSHXADD, ReadSHXADD, ReadSHXADD]>;
+} // Predicates = [HasStdExtZba, HasCheriOrRVY, IsCapMode]
+
+let Predicates = [HasStdExtZba, IsRV64, HasCheriOrRVY, IsCapMode] in {
+def C_ADD_UW   : C_ALUW_rr<0b0000100, 0b000, "add.uw">,
+                 Sched<[WriteIALU32, ReadIALU32, ReadIALU32]>;
+def C_SH1ADD_UW : C_ALUW_rr<0b0010000, 0b010, "sh1add.uw">,
+                  Sched<[WriteSHXADD32, ReadSHXADD32, ReadSHXADD32]>;
+def C_SH2ADD_UW : C_ALUW_rr<0b0010000, 0b100, "sh2add.uw">,
+                  Sched<[WriteSHXADD32, ReadSHXADD32, ReadSHXADD32]>;
+def C_SH3ADD_UW : C_ALUW_rr<0b0010000, 0b110, "sh3add.uw">,
+                  Sched<[WriteSHXADD32, ReadSHXADD32, ReadSHXADD32]>;
+} // Predicates = [HasStdExtZba, IsRV64, HasCheriOrRVY, IsCapMode]
+
+
+} // DecoderNamespace = "CapModeOnly_"
+
+
+let Predicates = [HasStdExtZba, HasCheriOrRVY, IsCapMode] in {
+
+multiclass ZbaCheriPat<int n, RVInst Inst> {
+def : Pat<(cptradd GPCR:$rs2, (shl (XLenVT GPR:$rs1), (XLenVT n))),
+          (Inst GPR:$rs1, GPCR:$rs2)>;
+def : Pat<(add (shl (XLenVT GPR:$rs1), (XLenVT n)), non_imm12:$rs2),
+          (XLenVT (EXTRACT_SUBREG (Inst GPR:$rs1, (SUBREG_TO_REG GPCR, $rs2, sub_cap_addr)), sub_cap_addr))>;
+}
+
+defm : ZbaCheriPat<1, C_SH1ADD>;
+defm : ZbaCheriPat<2, C_SH2ADD>;
+defm : ZbaCheriPat<3, C_SH3ADD>;
+
+multiclass ZbaMultPat<int n, RVInst First, RVInst Second> {
+def : Pat<(add (mul_oneuse GPR:$rs1, (XLenVT n)), GPR:$rs2),
+          (XLenVT (EXTRACT_SUBREG
+            (First
+              (XLenVT (EXTRACT_SUBREG (Second GPR:$rs1, (SUBREG_TO_REG GPCR, $rs2, sub_cap_addr)), sub_cap_addr)),
+              (SUBREG_TO_REG GPCR, $rs2, sub_cap_addr)
+            ),
+          sub_cap_addr))>;
+def : Pat<(cptradd GPCR:$rs2, (mul_oneuse GPR:$rs1, (XLenVT n))),
+          (First (XLenVT (EXTRACT_SUBREG (Second GPR:$rs1, (SUBREG_TO_REG GPCR, $rs1, sub_cap_addr)), sub_cap_addr)), GPCR:$rs2)
+         >;
+}
+defm : ZbaMultPat<6,  C_SH1ADD, C_SH1ADD>;
+defm : ZbaMultPat<10, C_SH1ADD, C_SH2ADD>;
+defm : ZbaMultPat<18, C_SH1ADD, C_SH3ADD>;
+defm : ZbaMultPat<12, C_SH2ADD, C_SH1ADD>;
+defm : ZbaMultPat<20, C_SH2ADD, C_SH2ADD>;
+defm : ZbaMultPat<36, C_SH2ADD, C_SH3ADD>;
+defm : ZbaMultPat<24, C_SH3ADD, C_SH1ADD>;
+defm : ZbaMultPat<40, C_SH3ADD, C_SH2ADD>;
+defm : ZbaMultPat<72, C_SH3ADD, C_SH3ADD>;
+
+} // Predicates = [HasStdExtZba, HasCheriOrRVY, IsCapMode]
+
+let Predicates = [HasStdExtZba, HasCheriOrRVY, IsRV64, IsCapMode] in {
+def : Pat<(cptradd GPCR:$rs2, (and (XLenVT GPR:$rs1), 0xFFFFFFFF)),
+          (C_ADD_UW GPR:$rs1, GPCR:$rs2)>;
+
+def : Pat<(i64 (and (XLenVT GPR:$rs), 0xFFFFFFFF)),
+          (EXTRACT_SUBREG (C_ADD_UW GPR:$rs, C0), sub_cap_addr)>;
+
+def : Pat<(cptradd GPCR:$rs2, (shl (and (XLenVT GPR:$rs1), 0xFFFFFFFF), (i64 1))),
+          (C_SH1ADD_UW GPR:$rs1, GPCR:$rs2)>;
+def : Pat<(cptradd GPCR:$rs2, (shl (and (XLenVT GPR:$rs1), 0xFFFFFFFF), (i64 2))),
+          (C_SH2ADD_UW GPR:$rs1, GPCR:$rs2)>;
+def : Pat<(cptradd GPCR:$rs2, (shl (and (XLenVT GPR:$rs1), 0xFFFFFFFF), (i64 3))),
+          (C_SH3ADD_UW GPR:$rs1, GPCR:$rs2)>;
+
+} // Predicates = [HasStdExtZba, HasCheriOrRVY, IsRV64, IsCapMode]

@@ -122,3 +122,19 @@ class CHStore_rr<bits<7> funct7, string opcodestr, DAGOperand rs1Class=GPCRMemZe
                opcodestr, "$rs2, $rs1"> {
   let rd = 0;
 }
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class C_ALUW_rr<bits<7> funct7, bits<3> funct3, string opcodestr,
+              bit Commutable = 0>
+    : RVInstR<funct7, funct3, OPC_OP_32, (outs GPCR:$rd),
+              (ins GPR:$rs1, GPCR:$rs2), opcodestr, "$rd, $rs1, $rs2"> {
+  let isCommutable = Commutable;
+}
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class C_ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr,
+             bit Commutable = 0>
+    : RVInstR<funct7, funct3, OPC_OP, (outs GPCR:$rd), (ins GPR:$rs1, GPCR:$rs2),
+              opcodestr, "$rd, $rs1, $rs2"> {
+  let isCommutable = Commutable;
+}
