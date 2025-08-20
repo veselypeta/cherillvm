@@ -14139,8 +14139,7 @@ RISCVTargetLowering::getTailPaddingForPreciseBounds(uint64_t Size) const {
   return RISCVCompressedCap::getRequiredTailPadding(Size, Subtarget.is64Bit());
 }
 
-Align
-RISCVTargetLowering::getAlignmentForPreciseBounds(uint64_t Size) const {
+Align RISCVTargetLowering::getAlignmentForPreciseBounds(uint64_t Size) const {
   if (!RISCVABI::isCheriPureCapABI(Subtarget.getTargetABI()))
     return Align();
 
