@@ -493,13 +493,16 @@ public:
     return Kind == KindTy::Register &&
            (RISCVMCRegisterClasses[RISCV::GPRRegClassID].contains(Reg.RegNum) ||
             RISCVMCRegisterClasses[RISCV::FPR64RegClassID].contains(Reg.RegNum) ||
-            RISCVMCRegisterClasses[RISCV::VRRegClassID].contains(Reg.RegNum));
+            RISCVMCRegisterClasses[RISCV::VRRegClassID].contains(Reg.RegNum) ||
+            RISCVMCRegisterClasses[RISCV::GPCRRegClassID].contains(Reg.RegNum));
   }
   bool isAnyRegC() const {
     return Kind == KindTy::Register &&
            (RISCVMCRegisterClasses[RISCV::GPRCRegClassID].contains(
                 Reg.RegNum) ||
             RISCVMCRegisterClasses[RISCV::FPR64CRegClassID].contains(
+                Reg.RegNum) ||
+            RISCVMCRegisterClasses[RISCV::GPCRCRegClassID].contains(
                 Reg.RegNum));
   }
   bool isImm() const override { return Kind == KindTy::Immediate; }
