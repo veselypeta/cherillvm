@@ -1446,6 +1446,10 @@ size_t ObjectFileELF::GetSectionHeaderInfo(SectionHeaderColl &section_headers,
       flags |= ArchSpec::eRISCV_rvc;
     if (header.e_flags & llvm::ELF::EF_RISCV_RVE)
       flags |= ArchSpec::eRISCV_rve;
+    if (header.e_flags & llvm::ELF::EF_RISCV_CHERIABI)
+      flags |= ArchSpec::eRISCV_cheriabi;
+    if (header.e_flags & llvm::ELF::EF_RISCV_CAP_MODE)
+      flags |= ArchSpec::eRISCV_cap_mode;
 
     if ((header.e_flags & llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE) ==
         llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE)

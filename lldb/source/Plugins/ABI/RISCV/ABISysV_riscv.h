@@ -68,6 +68,7 @@ public:
   }
 
   void SetIsRV64(bool is_rv64) { m_is_rv64 = is_rv64; }
+  void SetIsCapabilityABI(bool is_cap_abi) { m_is_capability_abi = is_cap_abi; }
 
   bool CodeAddressIsValid(lldb::addr_t pc) override {
     // Calls can use the least significant bit to store auxiliary information,
@@ -124,6 +125,7 @@ private:
   using lldb_private::RegInfoBasedABI::RegInfoBasedABI; // Call CreateInstance
                                                         // instead.
   bool m_is_rv64; // true if target is riscv64; false if target is riscv32
+  bool m_is_capability_abi;
 };
 
 #endif // liblldb_ABISysV_riscv_h_

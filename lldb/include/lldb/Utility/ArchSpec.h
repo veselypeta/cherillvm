@@ -99,6 +99,8 @@ public:
     eRISCV_float_abi_mask   = 0x00000006,
     eRISCV_rve              = 0x00000008, /// RVE, +e
     eRISCV_tso              = 0x00000010, /// RVTSO (total store ordering)
+    eRISCV_cheriabi         = 0x00010000, /// Capability ABI
+    eRISCV_cap_mode         = 0x00020000, /// Capability Mode
   };
 
   enum RISCVSubType {
@@ -431,6 +433,10 @@ public:
   uint32_t GetMachOCPUType() const;
 
   uint32_t GetMachOCPUSubType() const;
+
+  bool IsCapabilityABI() const {
+    return GetTriple().isRISCV() && (GetFlags() & eRISCV_cheriabi);
+  }
 
   /// Architecture data byte width accessor
   ///

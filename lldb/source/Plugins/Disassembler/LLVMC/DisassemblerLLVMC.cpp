@@ -1575,6 +1575,8 @@ DisassemblerLLVMC::DisassemblerLLVMC(const ArchSpec &arch,
     if ((arch_flags & ArchSpec::eRISCV_float_abi_quad) ==
         ArchSpec::eRISCV_float_abi_quad)
       features_str += "+f,+d,+q,";
+    if ((arch_flags & ArchSpec::eRISCV_cap_mode) == ArchSpec::eRISCV_cap_mode)
+      features_str += "+xcheri,+cap-mode,";
     // FIXME: how do we detect features such as `+a`, `+m`?
     // Turn them on by default now, since everyone seems to use them
     features_str += "+a,+m,";

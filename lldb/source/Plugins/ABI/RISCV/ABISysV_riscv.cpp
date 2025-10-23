@@ -140,6 +140,8 @@ ABISysV_riscv::CreateInstance(ProcessSP process_sp, const ArchSpec &arch) {
                                          MakeMCRegisterInfo(arch));
   if (abi)
     abi->SetIsRV64((llvm::Triple::riscv64 == machine) ? true : false);
+  if (abi)
+    abi->SetIsCapabilityABI(arch.IsCapabilityABI());
   return ABISP(abi);
 }
 
