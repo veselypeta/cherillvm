@@ -90,3 +90,52 @@ TEST_F(TestMCDisasmInstanceRISCV, TestRISCV32Instruction) {
   EXPECT_FALSE(inst_sp->IsCall());
   EXPECT_TRUE(inst_sp->DoesBranch());
 }
+
+TEST_F(TestMCDisasmInstanceRISCV, TestRISCV32InstructionCheri) {
+  ArchSpec arch("riscv32-*-linux");
+  arch.SetFlags(arch.GetFlags() | ArchSpec::eRISCV_cheriabi |
+                ArchSpec::eRISCV_cap_mode);
+
+  const unsigned num_of_instructions = 5;
+  uint8_t data[] = {
+    0xdb, 0x00, 0x31, 0x22, // cincoffset cra, csp, gp
+    0xdb, 0x00, 0xc1, 0xfe, // jalr.cap   cra, csp
+    0xdb, 0x80, 0x20, 0xfc, // cinvoke c1, c2
+    0xdb, 0x00, 0x31, 0x10, // csetbounds c1, c2, x3
+    0x03, 0x36, 0x15, 0x01, // clc ca2, 17(ca0)
+  };
+
+  DisassemblerSP disass_sp;
+  Address start_addr(0x100);
+  disass_sp =
+      Disassembler::DisassembleBytes(arch, nullptr, nullptr, start_addr, &data,
+                                     sizeof(data), num_of_instructions, false);
+
+  if (!disass_sp)
+    return;
+
+  const InstructionList inst_list(disass_sp->GetInstructionList());
+  EXPECT_EQ(num_of_instructions, inst_list.GetSize());
+
+  InstructionSP inst_sp;
+  inst_sp = inst_list.GetInstructionAtIndex(0);
+  EXPECT_FALSE(inst_sp->IsAuthenticated());
+  EXPECT_FALSE(inst_sp->DoesBranch());
+
+  inst_sp = inst_list.GetInstructionAtIndex(1);
+  EXPECT_TRUE(inst_sp->IsCall());
+  EXPECT_TRUE(inst_sp->DoesBranch());
+
+  inst_sp = inst_list.GetInstructionAtIndex(2);
+  EXPECT_TRUE(inst_sp->IsCall());
+  EXPECT_TRUE(inst_sp->DoesBranch());
+
+  inst_sp = inst_list.GetInstructionAtIndex(3);
+  EXPECT_FALSE(inst_sp->IsCall());
+  EXPECT_FALSE(inst_sp->DoesBranch());
+
+  inst_sp = inst_list.GetInstructionAtIndex(4);
+  EXPECT_FALSE(inst_sp->IsCall());
+  EXPECT_FALSE(inst_sp->DoesBranch());
+  EXPECT_TRUE(inst_sp->IsLoad());
+}
