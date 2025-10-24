@@ -23,7 +23,7 @@ public:
   GetRegisterInfoCount(const lldb_private::ArchSpec &target_arch);
 
 public:
-  enum { GPRegSet = 0, FPRegSet };
+  enum { GPRegSet = 0, FPRegSet, GPCRRegSet };
 
   struct GPR {
     // note: gpr[0] is pc, not x0
@@ -38,6 +38,15 @@ public:
   struct VPR {
     // The size should be VLEN*32 in bits, but we don't have VLEN here.
     void *vpr;
+  };
+
+  struct GPCR {
+    struct cap {
+      uint64_t addr;
+      uint64_t meta;
+    };
+    // note: gpcr[0] is pcc, not c0
+    cap gpcr[32];
   };
 
   RegisterInfoPOSIX_riscv64(const lldb_private::ArchSpec &target_arch,

@@ -18,6 +18,7 @@
 #include "lldb/Utility/Scalar.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
+#include "lldb/lldb-enumerations.h"
 
 #include <iterator>
 #include <mutex>
@@ -1104,6 +1105,9 @@ bool CompilerType::GetValueAsScalar(const lldb_private::DataExtractor &data,
     case lldb::eEncodingInvalid:
       break;
     case lldb::eEncodingVector:
+      break;
+    case lldb::eEncodingCapability:
+      assert(0 && "TODO - return the address?");
       break;
     case lldb::eEncodingUint:
       if (*byte_size <= sizeof(unsigned long long)) {

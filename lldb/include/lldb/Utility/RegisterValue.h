@@ -47,6 +47,8 @@ public:
     eTypeUInt32,
     eTypeUInt64,
     eTypeUInt128,
+    eTypeCapability64,
+    eTypeCapability128,
     eTypeFloat,
     eTypeDouble,
     eTypeLongDouble,
@@ -86,6 +88,26 @@ public:
   explicit RegisterValue(llvm::ArrayRef<uint8_t> bytes,
                          lldb::ByteOrder byte_order) {
     SetBytes(bytes.data(), bytes.size(), byte_order);
+  }
+
+  explicit RegisterValue(uint64_t addr, uint64_t meta, bool valid)
+      : m_type(eTypeCapability128) {
+    llvm::APInt Cap(129, valid ? 1 : 0);
+    Cap >> 64;
+    Cap |= meta;
+    Cap >> 64;
+    Cap |= addr;
+    m_scalar = Cap;
+  }
+
+  explicit RegisterValue(uint32_t addr, uint32_t meta, bool valid)
+      : m_type(eTypeCapability64) {
+    llvm::APInt Cap(65, valid ? 1 : 0);
+    Cap >> 32;
+    Cap |= meta;
+    Cap >> 32;
+    Cap |= addr;
+    m_scalar = Cap;
   }
 
   RegisterValue::Type GetType() const { return m_type; }
@@ -223,6 +245,28 @@ public:
   }
 
   bool SetUInt(uint64_t uint, uint32_t byte_size);
+
+  void SetCap64(uint32_t addr, uint32_t meta, bool valid) {
+    m_type = eTypeCapability64;
+    llvm::APInt Cap(65, valid ? 1 : 0);
+    Cap >> 32;
+    Cap |= meta;
+    Cap >> 32;
+    Cap |= addr;
+    m_scalar = std::move(Cap);
+  }
+
+  void SetCap128(uint64_t addr, uint64_t meta, bool valid) {
+    m_type = eTypeCapability128;
+    llvm::APInt Cap(129, valid ? 1 : 0);
+    Cap >> 64;
+    Cap |= meta;
+    Cap >> 64;
+    Cap |= addr;
+    m_scalar = std::move(Cap);
+  }
+
+  bool SetCap(uint64_t addr, uint64_t meta, bool valid, uint32_t byte_size);
 
   void SetFloat(float f) {
     m_type = eTypeFloat;

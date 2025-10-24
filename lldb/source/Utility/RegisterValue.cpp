@@ -131,6 +131,8 @@ bool RegisterValue::GetScalarValue(Scalar &scalar) const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
+  case eTypeCapability64:
+  case eTypeCapability128:
     scalar = m_scalar;
     return true;
   }
@@ -217,6 +219,18 @@ Status RegisterValue::SetValueFromData(const RegisterInfo &reg_info,
     else if (reg_info.byte_size == sizeof(long double))
       SetLongDouble(src.GetLongDouble(&src_offset));
     break;
+  case eEncodingCapability: {
+    uint64_t addr, meta;
+    if (reg_info.byte_size == 16) {
+      addr = src.GetMaxU64(&src_offset, 8);
+      meta = src.GetMaxU64(&src_offset, 8);
+    } else {
+      addr = src.GetMaxU32(&src_offset, 4);
+      meta = src.GetMaxU32(&src_offset, 4);
+    }
+    SetCap(addr, meta, false, reg_info.byte_size);
+    break;
+  }
   case eEncodingVector: {
     m_type = eTypeBytes;
     assert(reg_info.byte_size <= kMaxRegisterByteSize);
@@ -427,6 +441,9 @@ Status RegisterValue::SetValueFromString(const RegisterInfo *reg_info,
     if (!ParseVectorEncoding(reg_info, value_str, byte_size, this))
       error.SetErrorString("unrecognized vector encoding string value.");
     break;
+  case eEncodingCapability:
+    assert(0 && "TODO Implement");
+    break;
   }
 
   return error;
@@ -447,6 +464,8 @@ bool RegisterValue::SignExtend(uint32_t sign_bitpos) {
   case eTypeDouble:
   case eTypeLongDouble:
   case eTypeBytes:
+  case eTypeCapability64:
+  case eTypeCapability128:
     break;
   }
   return false;
@@ -465,6 +484,8 @@ bool RegisterValue::CopyValue(const RegisterValue &rhs) {
   case eTypeUInt32:
   case eTypeUInt64:
   case eTypeUInt128:
+  case eTypeCapability64:
+  case eTypeCapability128:
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
@@ -677,6 +698,8 @@ const void *RegisterValue::GetBytes() const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
+  case eTypeCapability64:
+  case eTypeCapability128:
     m_scalar.GetBytes(buffer.bytes);
     return buffer.bytes.data();
   case eTypeBytes:
@@ -699,6 +722,8 @@ uint32_t RegisterValue::GetByteSize() const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
+  case eTypeCapability64:
+  case eTypeCapability128:
     return m_scalar.GetByteSize();
   case eTypeBytes:
     return buffer.bytes.size();
@@ -720,6 +745,17 @@ bool RegisterValue::SetUInt(uint64_t uint, uint32_t byte_size) {
   } else if (byte_size <= 16) {
     SetUInt128(llvm::APInt(128, uint));
   } else
+    return false;
+  return true;
+}
+
+bool RegisterValue::SetCap(uint64_t addr, uint64_t meta, bool valid,
+                           uint32_t byte_size) {
+  if (byte_size == 8)
+    SetCap64(addr, meta, valid);
+  else if (byte_size == 16)
+    SetCap128(addr, meta, valid);
+  else
     return false;
   return true;
 }
@@ -750,6 +786,8 @@ bool RegisterValue::operator==(const RegisterValue &rhs) const {
     case eTypeFloat:
     case eTypeDouble:
     case eTypeLongDouble:
+    case eTypeCapability64:
+    case eTypeCapability128:
       return m_scalar == rhs.m_scalar;
     case eTypeBytes:
       return buffer.bytes == rhs.buffer.bytes;
@@ -780,6 +818,8 @@ bool RegisterValue::ClearBit(uint32_t bit) {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
+  case eTypeCapability64:
+  case eTypeCapability128:
     break;
 
   case eTypeBytes:
@@ -820,6 +860,8 @@ bool RegisterValue::SetBit(uint32_t bit) {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
+  case eTypeCapability64:
+  case eTypeCapability128:
     break;
 
   case eTypeBytes:

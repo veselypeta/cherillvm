@@ -13,6 +13,7 @@
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
+#include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-types.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/SmallString.h"
@@ -692,6 +693,9 @@ Status Scalar::SetValueFromCString(const char *value_str, Encoding encoding,
   case eEncodingVector:
     error.SetErrorString("vector encoding unsupported.");
     break;
+  case eEncodingCapability:
+    error.SetErrorString("capability encoding unsupported.");
+    break;
   }
   if (error.Fail())
     m_type = e_void;
@@ -708,6 +712,9 @@ Status Scalar::SetValueFromData(const DataExtractor &data,
     break;
   case lldb::eEncodingVector:
     error.SetErrorString("vector encoding unsupported");
+    break;
+  case lldb::eEncodingCapability:
+    error.SetErrorString("capability encoding unsupported");
     break;
   case lldb::eEncodingUint:
   case lldb::eEncodingSint: {

@@ -25,6 +25,10 @@
 #error FPR_OFFSET must be defined before including this header file
 #endif
 
+#ifndef GPCR_OFFSET
+#erro GPCR_OFFSET must be defined before including this header file
+#endif
+
 using namespace riscv_dwarf;
 
 // clang-format off
@@ -54,6 +58,17 @@ using namespace riscv_dwarf;
     #reg, #alt, 8, GPR_OFFSET(gpr_##reg##_riscv - gpr_first_riscv),            \
     lldb::eEncodingUint, lldb::eFormatHex,                                     \
     GPR64_KIND(gpr_##reg, generic_kind), nullptr, nullptr, nullptr,            \
+  }
+
+// Define a 128-bit capability register
+#define DEFINE_GPCR128(reg, generic_kind) DEFINE_GPCR128_ALT(reg, reg, generic_kind)
+
+// Define a 128-bit capability register
+#define DEFINE_GPCR128_ALT(reg, alt, generic_kind)                             \
+  {                                                                            \
+    #reg, #alt, 16, GPCR_OFFSET(gpcr_##reg##_riscv - gpcr_first_riscv),        \
+    lldb::eEncodingCapability, lldb::eFormatHex,                               \
+    KIND_HELPER(gpcr_##reg, generic_kind), nullptr, nullptr, nullptr,         \
   }
 
 #define DEFINE_FPR64(reg, generic_kind) DEFINE_FPR64_ALT(reg, reg, generic_kind)
@@ -181,6 +196,40 @@ static lldb_private::RegisterInfo g_register_infos_riscv64_le[] = {
     DEFINE_VPR(v29, LLDB_INVALID_REGNUM),
     DEFINE_VPR(v30, LLDB_INVALID_REGNUM),
     DEFINE_VPR(v31, LLDB_INVALID_REGNUM),
+
+    DEFINE_GPCR128(pcc, LLDB_REGNUM_GENERIC_PC),
+    DEFINE_GPCR128_ALT(cra, c1, LLDB_REGNUM_GENERIC_RA),
+    DEFINE_GPCR128_ALT(csp, c2, LLDB_REGNUM_GENERIC_SP),
+    DEFINE_GPCR128_ALT(cgp, c3, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ctp, c4, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct0, c5, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct1, c6, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct2, c7, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cfp, c8, LLDB_REGNUM_GENERIC_FP),
+    DEFINE_GPCR128_ALT(cs1, c9, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ca0, c10, LLDB_REGNUM_GENERIC_ARG1),
+    DEFINE_GPCR128_ALT(ca1, c11, LLDB_REGNUM_GENERIC_ARG2),
+    DEFINE_GPCR128_ALT(ca2, c12, LLDB_REGNUM_GENERIC_ARG3),
+    DEFINE_GPCR128_ALT(ca3, c13, LLDB_REGNUM_GENERIC_ARG4),
+    DEFINE_GPCR128_ALT(ca4, c14, LLDB_REGNUM_GENERIC_ARG5),
+    DEFINE_GPCR128_ALT(ca5, c15, LLDB_REGNUM_GENERIC_ARG6),
+    DEFINE_GPCR128_ALT(ca6, c16, LLDB_REGNUM_GENERIC_ARG7),
+    DEFINE_GPCR128_ALT(ca7, c17, LLDB_REGNUM_GENERIC_ARG8),
+    DEFINE_GPCR128_ALT(cs2, c18, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs3, c19, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs4, c20, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs5, c21, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs6, c22, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs7, c23, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs8, c24, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs9, c25, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs10, c26, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cs11, c27, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct3, c28, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct4, c29, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct5, c30, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(ct6, c31, LLDB_INVALID_REGNUM),
+    DEFINE_GPCR128_ALT(cnull, c0, LLDB_INVALID_REGNUM),
 };
 
 #endif // DECLARE_REGISTER_INFOS_RISCV64_STRUCT

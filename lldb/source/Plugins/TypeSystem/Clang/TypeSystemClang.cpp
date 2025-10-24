@@ -78,6 +78,7 @@
 #include "Plugins/SymbolFile/DWARF/DWARFASTParserClang.h"
 #include "Plugins/SymbolFile/PDB/PDBASTParser.h"
 #include "Plugins/SymbolFile/NativePDB/PdbAstBuilder.h"
+#include "lldb/lldb-enumerations.h"
 
 #include <cstdio>
 
@@ -797,6 +798,8 @@ TypeSystemClang::GetBuiltinTypeForEncodingAndBitSize(Encoding encoding,
     if (bit_size && !(bit_size & 0x7u))
       return GetType(ast.getExtVectorType(ast.UnsignedCharTy, bit_size / 8));
     break;
+  case eEncodingCapability:
+    return GetType(ast.VoidPtrTy);
   }
 
   return CompilerType();
@@ -854,6 +857,8 @@ lldb::BasicType TypeSystemClang::GetBasicTypeEnumeration(llvm::StringRef name) {
       {"id", eBasicTypeObjCID},
       {"SEL", eBasicTypeObjCSel},
       {"nullptr", eBasicTypeNullPtr},
+
+      // TODO - (u)intcap_t???
   };
 
   auto iter = g_type_map.find(name);
@@ -4154,6 +4159,8 @@ TypeSystemClang::GetTypeClass(lldb::opaque_compiler_type_t type) {
     return lldb::eTypeClassBlockPointer;
   case clang::Type::Pointer:
     return lldb::eTypeClassPointer;
+  case clang::Type::DependentPointer:
+    return lldb::eTypeClassPointer;
   case clang::Type::LValueReference:
     return lldb::eTypeClassReference;
   case clang::Type::RValueReference:
@@ -4873,6 +4880,10 @@ lldb::Encoding TypeSystemClang::GetEncoding(lldb::opaque_compiler_type_t type,
     case clang::BuiltinType::UInt128:
       return lldb::eEncodingUint;
 
+    case clang::BuiltinType::UIntCap:
+    case clang::BuiltinType::IntCap:
+      return lldb::eEncodingCapability;
+
     // Fixed point types. Note that they are currently ignored.
     case clang::BuiltinType::ShortAccum:
     case clang::BuiltinType::Accum:
@@ -5068,12 +5079,15 @@ lldb::Encoding TypeSystemClang::GetEncoding(lldb::opaque_compiler_type_t type,
     break;
   // All pointer types are represented as unsigned integer encodings. We may
   // nee to add a eEncodingPointer if we ever need to know the difference
+  case clang::Type::DependentPointer:
   case clang::Type::ObjCObjectPointer:
   case clang::Type::BlockPointer:
   case clang::Type::Pointer:
   case clang::Type::LValueReference:
   case clang::Type::RValueReference:
   case clang::Type::MemberPointer:
+    if (getTargetInfo()->areAllPointersCapabilities())
+      return lldb::eEncodingCapability;
     return lldb::eEncodingUint;
   case clang::Type::Complex: {
     lldb::Encoding encoding = lldb::eEncodingIEEE754;
@@ -5236,6 +5250,8 @@ lldb::Format TypeSystemClang::GetFormat(lldb::opaque_compiler_type_t type) {
       return lldb::eFormatHex;
     }
     break;
+  case clang::Type::DependentPointer:
+    return lldb::eFormatPointer; // format vs type?
   case clang::Type::ObjCObjectPointer:
     return lldb::eFormatHex;
   case clang::Type::BlockPointer:

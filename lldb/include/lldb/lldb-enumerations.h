@@ -146,10 +146,11 @@ enum ByteOrder {
 /// Register encoding definitions.
 enum Encoding {
   eEncodingInvalid = 0,
-  eEncodingUint,    ///< unsigned integer
-  eEncodingSint,    ///< signed integer
-  eEncodingIEEE754, ///< float
-  eEncodingVector   ///< vector registers
+  eEncodingUint,       ///< unsigned integer
+  eEncodingSint,       ///< signed integer
+  eEncodingIEEE754,    ///< float
+  eEncodingVector,     ///< vector registers
+  eEncodingCapability, ///< capability registers
 };
 
 /// Display format definitions.

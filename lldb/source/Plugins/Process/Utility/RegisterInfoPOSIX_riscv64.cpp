@@ -10,6 +10,7 @@
 #include <lldb/Utility/Flags.h>
 #include <stddef.h>
 
+#include "lldb-riscv-register-enums.h"
 #include "lldb/lldb-defines.h"
 #include "llvm/Support/Compiler.h"
 
@@ -17,10 +18,14 @@
 
 #define GPR_OFFSET(idx) ((idx)*8 + 0)
 #define FPR_OFFSET(idx) ((idx)*8 + sizeof(RegisterInfoPOSIX_riscv64::GPR))
+#define GPCR_OFFSET(idx)                                                       \
+  ((idx) * 16 + sizeof(RegisterInfoPOSIX_riscv64::GPR) +                       \
+   sizeof(RegisterInfoPOSIX_riscv64::FPR))
 
 #define REG_CONTEXT_SIZE                                                       \
   (sizeof(RegisterInfoPOSIX_riscv64::GPR) +                                    \
-   sizeof(RegisterInfoPOSIX_riscv64::FPR))
+   sizeof(RegisterInfoPOSIX_riscv64::FPR)  +                                   \
+   sizeof(RegisterInfoPOSIX_riscv64::GPCR)
 
 #define DECLARE_REGISTER_INFOS_RISCV64_STRUCT
 #include "RegisterInfos_riscv64.h"
@@ -53,7 +58,8 @@ uint32_t RegisterInfoPOSIX_riscv64::GetRegisterInfoCount(
 enum {
   k_num_gpr_registers = gpr_last_riscv - gpr_first_riscv + 1,
   k_num_fpr_registers = fpr_last_riscv - fpr_first_riscv + 1,
-  k_num_register_sets = 2
+  k_num_gpcr_registers = gpcr_last_riscv - gpcr_first_riscv + 1,
+  k_num_register_sets = 3
 };
 
 // RISC-V64 general purpose registers.
@@ -90,12 +96,30 @@ static_assert(((sizeof g_fpr_regnums_riscv64 /
                1) == k_num_fpr_registers,
               "g_fpr_regnums_riscv64 has wrong number of register infos");
 
+// RISCV-C64 capability registers.
+static const uint32_t g_gpcr_regnums_riscv64[] = {
+    gpcr_pcc_riscv, gpcr_c0_riscv,      gpcr_c1_riscv,  gpcr_c2_riscv,
+    gpcr_c3_riscv,  gpcr_c4_riscv,      gpcr_c5_riscv,  gpcr_c6_riscv,
+    gpcr_c7_riscv,  gpcr_c8_riscv,      gpcr_c9_riscv,  gpcr_c10_riscv,
+    gpcr_c11_riscv, gpcr_c12_riscv,     gpcr_c13_riscv, gpcr_c14_riscv,
+    gpcr_c15_riscv, gpcr_c16_riscv,     gpcr_c17_riscv, gpcr_c18_riscv,
+    gpcr_c19_riscv, gpcr_c20_riscv,     gpcr_c21_riscv, gpcr_c22_riscv,
+    gpcr_c23_riscv, gpcr_c24_riscv,     gpcr_c25_riscv, gpcr_c26_riscv,
+    gpcr_c27_riscv, gpcr_c28_riscv,     gpcr_c29_riscv, gpcr_c30_riscv,
+    gpcr_c31_riscv, LLDB_INVALID_REGNUM};
+static_assert(((sizeof g_gpcr_regnums_riscv64 /
+                sizeof g_gpcr_regnums_riscv64[0]) -
+               1) == k_num_gpcr_registers,
+              "g_gpcr_regnums_riscv64 has wrong number of register infos");
+
 // Register sets for RISC-V64.
 static const lldb_private::RegisterSet g_reg_sets_riscv64[k_num_register_sets] =
     {{"General Purpose Registers", "gpr", k_num_gpr_registers,
       g_gpr_regnums_riscv64},
      {"Floating Point Registers", "fpr", k_num_fpr_registers,
-      g_fpr_regnums_riscv64}};
+      g_fpr_regnums_riscv64},
+     {"General Purpose Capability Registers", "gpcr", k_num_gpcr_registers,
+      g_gpcr_regnums_riscv64}};
 
 RegisterInfoPOSIX_riscv64::RegisterInfoPOSIX_riscv64(
     const lldb_private::ArchSpec &target_arch, lldb_private::Flags flags)
@@ -131,6 +155,8 @@ size_t RegisterInfoPOSIX_riscv64::GetRegisterSetFromRegisterIndex(
     return GPRegSet;
   if (reg_index >= fpr_first_riscv && reg_index <= fpr_last_riscv)
     return FPRegSet;
+  if (reg_index >= gpcr_first_riscv && reg_index <= gpcr_last_riscv)
+    return GPCRRegSet;
   return LLDB_INVALID_REGNUM;
 }
 
