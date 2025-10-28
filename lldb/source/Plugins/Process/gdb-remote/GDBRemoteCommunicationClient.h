@@ -329,6 +329,10 @@ public:
 
   bool GetQXferSigInfoReadSupported();
 
+  bool GetQXferCapaReadSupported();
+
+  bool GetQXferCapaWriteSupported();
+
   bool GetMultiprocessSupported();
 
   LazyBool SupportsAllocDeallocMemory() // const
@@ -440,6 +444,11 @@ public:
   Status WriteMemoryTags(lldb::addr_t addr, size_t len, int32_t type,
                          const std::vector<uint8_t> &tags);
 
+  lldb::DataBufferSP ReadCapabilityData(lldb::addr_t addr);
+
+  Status WriteCapabilityData(lldb::addr_t addr,
+                             const std::vector<uint8_t> &cap_data);
+
   /// Use qOffsets to query the offset used when relocating the target
   /// executable. If successful, the returned structure will contain at least
   /// one value in the offsets field.
@@ -550,6 +559,8 @@ protected:
   LazyBool m_supports_qXfer_features_read = eLazyBoolCalculate;
   LazyBool m_supports_qXfer_memory_map_read = eLazyBoolCalculate;
   LazyBool m_supports_qXfer_siginfo_read = eLazyBoolCalculate;
+  LazyBool m_supports_qXfer_capa_read = eLazyBoolCalculate;
+  LazyBool m_supports_qXfer_capa_write = eLazyBoolCalculate;
   LazyBool m_supports_augmented_libraries_svr4_read = eLazyBoolCalculate;
   LazyBool m_supports_jThreadExtendedInfo = eLazyBoolCalculate;
   LazyBool m_supports_jLoadedDynamicLibrariesInfos = eLazyBoolCalculate;

@@ -593,6 +593,120 @@ TEST_F(GDBRemoteCommunicationClientTest, WriteMemoryTags) {
                  "E03", false);
 }
 
+static void
+check_qxfer_capa_read(TestClient &client, MockServer &server, lldb::addr_t addr,
+                      const char *packet, llvm::StringRef response,
+                      std::optional<std::vector<uint8_t>> expected_cap_data) {
+  static bool QuerySupported = false;
+  // we need to provide a response for qSupported:.. as this is queried for
+  // before the read capability packet is sent.
+  const auto &IsCapReadSupported = [&] {
+    std::future<bool> result = std::async(
+        std::launch::async, [&] { return client.GetQXferCapaReadSupported(); });
+    HandlePacket(server, testing::StartsWith("qSupported:"),
+                 "PacketSize=ffc;qXfer:capa:read+");
+    return result.get();
+  };
+
+  const auto &ReadCap = [&] {
+    std::future<DataBufferSP> result = std::async(
+        std::launch::async, [&] { return client.ReadCapabilityData(addr); });
+
+    HandlePacket(server, packet, response);
+    return result.get();
+  };
+
+  if (!QuerySupported) {
+    QuerySupported = IsCapReadSupported();
+  }
+
+  ASSERT_TRUE(QuerySupported);
+  auto result = ReadCap();
+  if (expected_cap_data) {
+    ASSERT_TRUE(result);
+    llvm::ArrayRef<uint8_t> expected(*expected_cap_data);
+    llvm::ArrayRef<uint8_t> got = result->GetData();
+    ASSERT_EQ(expected.size(), got.size());
+    ASSERT_THAT(expected, testing::ContainerEq(got));
+  } else {
+    ASSERT_FALSE(result);
+  }
+}
+
+TEST_F(GDBRemoteCommunicationClientTest, ReadCapabilityData) {
+  // example payload
+  // 0x (tag) 01 f0 ff 07 80 00 00 00 00 00 b0 01 00 00 70 e2 01
+  std::vector<uint8_t> res_data = {
+      0x01,                                           //
+      0xf0, 0xff, 0x07, 0x80, 0x00, 0x00, 0x00, 0x00, //
+      0x00, 0xb0, 0x01, 0x00, 0x00, 0x70, 0xe2, 0x01  //
+  };
+  StreamGDBRemote response;
+  response.PutChar('l');
+  response.PutEscapedBytes(res_data.data(), res_data.size());
+
+  check_qxfer_capa_read(client, server, 0xdeadbeef,
+                        "qXfer:capa:read:deadbeef:0,ffb", response.GetString(),
+                        res_data);
+
+  // TODO - add more test cases...
+}
+
+static void check_qxfer_capa_write(TestClient &client, MockServer &server,
+                                   lldb::addr_t addr,
+                                   const std::vector<uint8_t> &cap_data,
+                                   llvm::StringRef response,
+                                   bool should_succeed) {
+  static bool QuerySupported = false;
+
+  const auto &IsCapWriteSupported = [&] {
+    std::future<bool> result = std::async(std::launch::async, [&] {
+      return client.GetQXferCapaWriteSupported();
+    });
+    HandlePacket(server, testing::StartsWith("qSupported:"),
+                 "PacketSize=ffc;qXfer:capa:write+");
+    return result.get();
+  };
+
+  const auto &WriteCap = [&] {
+    std::future<Status> result = std::async(std::launch::async, [&] {
+      return client.WriteCapabilityData(addr, cap_data);
+    });
+    HandlePacket(server, testing::StartsWith("qXfer:capa:write:"), response);
+    return result.get();
+  };
+
+  if (!QuerySupported)
+    QuerySupported = IsCapWriteSupported();
+
+  ASSERT_TRUE(QuerySupported);
+
+  auto result = WriteCap();
+
+  if (should_succeed)
+    ASSERT_TRUE(result.Success());
+  else
+    ASSERT_TRUE(result.Fail());
+}
+
+TEST_F(GDBRemoteCommunicationClientTest, WriteCapabilityData) {
+  std::vector<uint8_t> cap_payload = {
+      0x01,                                           //
+      0xf2, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, //
+      0x00, 0x00, 0x00, 0x08, 0x00, 0xd0, 0xe3, 0x01, //
+  };
+
+  // server will respond with bytes-received
+  StreamGDBRemote response;
+  uint8_t cap_len = cap_payload.size();
+  response.PutBytesAsRawHex8(&cap_len, sizeof(cap_len));
+
+  check_qxfer_capa_write(client, server, 0xdeadbeef, cap_payload,
+                         response.GetString(), true);
+
+  // TODO - add more test cases...
+}
+
 // Prior to this verison, constructing a std::future for a type without a
 // default constructor is not possible.
 // https://developercommunity.visualstudio.com/t/c-shared-state-futuresstate-default-constructs-the/60897

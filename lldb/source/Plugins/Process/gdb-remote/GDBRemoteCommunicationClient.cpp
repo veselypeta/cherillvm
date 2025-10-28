@@ -184,6 +184,20 @@ bool GDBRemoteCommunicationClient::GetQXferSigInfoReadSupported() {
   return m_supports_qXfer_siginfo_read == eLazyBoolYes;
 }
 
+bool GDBRemoteCommunicationClient::GetQXferCapaReadSupported() {
+  if (m_supports_qXfer_capa_read == eLazyBoolCalculate) {
+    GetRemoteQSupported();
+  }
+  return m_supports_qXfer_capa_read == eLazyBoolYes;
+}
+
+bool GDBRemoteCommunicationClient::GetQXferCapaWriteSupported() {
+  if (m_supports_qXfer_capa_write == eLazyBoolCalculate) {
+    GetRemoteQSupported();
+  }
+  return m_supports_qXfer_capa_write == eLazyBoolYes;
+}
+
 bool GDBRemoteCommunicationClient::GetMultiprocessSupported() {
   if (m_supports_memory_tagging == eLazyBoolCalculate)
     GetRemoteQSupported();
@@ -340,6 +354,8 @@ void GDBRemoteCommunicationClient::GetRemoteQSupported() {
   m_supports_qXfer_features_read = eLazyBoolNo;
   m_supports_qXfer_memory_map_read = eLazyBoolNo;
   m_supports_qXfer_siginfo_read = eLazyBoolNo;
+  m_supports_qXfer_capa_read = eLazyBoolNo;
+  m_supports_qXfer_capa_write = eLazyBoolNo;
   m_supports_multiprocess = eLazyBoolNo;
   m_supports_qEcho = eLazyBoolNo;
   m_supports_QPassSignals = eLazyBoolNo;
@@ -384,6 +400,10 @@ void GDBRemoteCommunicationClient::GetRemoteQSupported() {
         m_supports_qXfer_memory_map_read = eLazyBoolYes;
       else if (x == "qXfer:siginfo:read+")
         m_supports_qXfer_siginfo_read = eLazyBoolYes;
+      else if (x == "qXfer:capa:read+")
+        m_supports_qXfer_capa_read = eLazyBoolYes;
+      else if (x == "qXfer:capa:write+")
+        m_supports_qXfer_capa_write = eLazyBoolYes;
       else if (x == "qEcho")
         m_supports_qEcho = eLazyBoolYes;
       else if (x == "QPassSignals+")
@@ -706,6 +726,42 @@ Status GDBRemoteCommunicationClient::WriteMemoryTags(
           PacketResult::Success ||
       !response.IsOKResponse()) {
     status.SetErrorString("QMemTags packet failed");
+  }
+  return status;
+}
+
+DataBufferSP
+GDBRemoteCommunicationClient::ReadCapabilityData(lldb::addr_t addr) {
+  DataBufferSP buf;
+  if (GetQXferCapaReadSupported()) {
+    std::string addr_str = llvm::utohexstr(addr, true);
+    llvm::Expected<std::string> response = ReadExtFeature("capa", addr_str);
+    if (response)
+      buf = std::make_shared<DataBufferHeap>(response->c_str(),
+                                             response->length());
+    else
+      LLDB_LOG_ERROR(GetLog(GDBRLog::Process), response.takeError(), "{0}");
+  }
+  return buf;
+}
+
+Status GDBRemoteCommunicationClient::WriteCapabilityData(
+    lldb::addr_t addr, const std::vector<uint8_t> &cap_data) {
+  Status status;
+  if (!GetQXferCapaWriteSupported()) {
+    status.SetErrorString("qXfer:capa:write packet in unsupported.");
+    return status;
+  }
+
+  // Format qXfer:capa:write:<address>:0:<data>
+  StreamGDBRemote packet;
+  packet.Printf("qXfer:capa:write:%" PRIx64 ":0:", addr);
+  packet.PutEscapedBytes(cap_data.data(), cap_data.size());
+
+  StringExtractorGDBRemote response;
+  if (SendPacketAndWaitForResponse(packet.GetString(), response) !=
+      PacketResult::Success) {
+    status.SetErrorString("qXfer:capa:write packet failed.");
   }
   return status;
 }
