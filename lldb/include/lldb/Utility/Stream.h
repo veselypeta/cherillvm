@@ -478,6 +478,9 @@ protected:
 void DumpAddress(llvm::raw_ostream &s, uint64_t addr, uint32_t addr_size,
                  const char *prefix = nullptr, const char *suffix = nullptr);
 
+void DumpCapability(llvm::raw_ostream &s, bool valid, uint64_t addr,
+                    uint32_t addr_size, uint64_t meta);
+
 /// Output an address range to this stream.
 ///
 /// Put an address range \a lo_addr - \a hi_addr out to the stream with

@@ -90,6 +90,7 @@ public:
     SetBytes(bytes.data(), bytes.size(), byte_order);
   }
 
+#if 0
   explicit RegisterValue(uint64_t addr, uint64_t meta, bool valid)
       : m_type(eTypeCapability128) {
     llvm::APInt Cap(129, valid ? 1 : 0);
@@ -109,6 +110,7 @@ public:
     Cap |= addr;
     m_scalar = Cap;
   }
+#endif
 
   RegisterValue::Type GetType() const { return m_type; }
 
@@ -248,22 +250,26 @@ public:
 
   void SetCap64(uint32_t addr, uint32_t meta, bool valid) {
     m_type = eTypeCapability64;
-    llvm::APInt Cap(65, valid ? 1 : 0);
-    Cap >> 32;
-    Cap |= meta;
-    Cap >> 32;
-    Cap |= addr;
-    m_scalar = std::move(Cap);
+    constexpr size_t cap_bytes = (2 * sizeof(uint32_t)) + 1;
+    uint8_t cap_data[cap_bytes];
+    cap_data[0] = valid ? 1 : 0;
+    memcpy(&cap_data[1], &addr, sizeof(uint32_t));
+    memcpy(&cap_data[1 + sizeof(uint32_t)], &meta, sizeof(uint32_t));
+
+    buffer.bytes.resize(cap_bytes);
+    memcpy(buffer.bytes.data(), &cap_data, cap_bytes);
   }
 
   void SetCap128(uint64_t addr, uint64_t meta, bool valid) {
     m_type = eTypeCapability128;
-    llvm::APInt Cap(129, valid ? 1 : 0);
-    Cap >> 64;
-    Cap |= meta;
-    Cap >> 64;
-    Cap |= addr;
-    m_scalar = std::move(Cap);
+    constexpr size_t cap_bytes = (2 * sizeof(uint64_t)) + 1;
+    uint8_t cap_data[cap_bytes];
+    cap_data[0] = valid ? 1 : 0;
+    memcpy(&cap_data[1], &addr, sizeof(uint64_t));
+    memcpy(&cap_data[1 + sizeof(uint64_t)], &meta, sizeof(uint64_t));
+
+    buffer.bytes.resize(cap_bytes);
+    memcpy(buffer.bytes.data(), &cap_data, cap_bytes);
   }
 
   bool SetCap(uint64_t addr, uint64_t meta, bool valid, uint32_t byte_size);

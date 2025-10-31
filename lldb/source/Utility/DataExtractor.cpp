@@ -571,6 +571,10 @@ int64_t DataExtractor::GetMaxS64(offset_t *offset_ptr, size_t byte_size) const {
   return llvm::SignExtend64(u64, 8 * byte_size);
 }
 
+bool DataExtractor::GetCapabilityTag(lldb::offset_t *offset_ptr) const {
+  return GetU8(offset_ptr) == 1;
+}
+
 uint64_t DataExtractor::GetMaxU64Bitfield(offset_t *offset_ptr, size_t size,
                                           uint32_t bitfield_bit_size,
                                           uint32_t bitfield_bit_offset) const {
@@ -950,6 +954,10 @@ lldb::offset_t DataExtractor::PutToLog(Log *log, offset_t start_offset,
       break;
     case TypeSLEB128:
       sstr.Printf(" %" PRId64, GetSLEB128(&offset));
+      break;
+    case TypeCapability:
+      // TODO - better printing?
+      sstr.Printf(" 0x%" PRIx64, GetAddress(&offset));
       break;
     }
   }

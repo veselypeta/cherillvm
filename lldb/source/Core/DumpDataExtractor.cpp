@@ -561,6 +561,13 @@ lldb::offset_t lldb_private::DumpDataExtractor(
       }
     } break;
 
+    case eFormatCapability:
+      DumpCapability(s->AsRawOstream(), DE.GetCapabilityTag(&offset),
+                     DE.GetMaxU64(&offset, DE.GetAddressByteSize()),
+                     DE.GetAddressByteSize(),
+                     DE.GetMaxU64(&offset, DE.GetAddressByteSize()));
+      break;
+
     case eFormatPointer:
       DumpAddress(s->AsRawOstream(),
                   DE.GetMaxU64Bitfield(&offset, item_byte_size, item_bit_size,

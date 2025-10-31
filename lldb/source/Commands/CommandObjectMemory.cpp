@@ -1477,6 +1477,10 @@ protected:
         }
         buffer.PutMaxHex64(uval64, item_byte_size);
         break;
+      case eFormatCapability:
+        assert(0 && "TODO");
+        // TODO;
+        break;
       }
     }
 

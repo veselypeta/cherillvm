@@ -12,9 +12,11 @@
 #include "lldb/Utility/Endian.h"
 #include "lldb/Utility/VASPrintf.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/CHERI/cheri-compressed-cap/cheri_compressed_cap.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/Regex.h"
+#include "llvm/CHERI/compressed_cap_utils.h"
 
 #include <string>
 
@@ -113,6 +115,74 @@ void lldb_private::DumpAddress(llvm::raw_ostream &s, uint64_t addr,
   if (suffix == nullptr)
     suffix = "";
   s << prefix << llvm::format_hex(addr, 2 + 2 * addr_size) << suffix;
+}
+
+
+static void DumpSDP(llvm::raw_ostream &s, uint32_t sdp, uint32_t sdp_bits) {
+  for (size_t i = 0; i < sdp_bits; i++){
+    s << ((sdp & (1 << i)) ? '1' : '0');
+  }
+}
+
+static void DumpAP(llvm::raw_ostream &s, uint32_t ap) {
+  // <R><W><X><C><A><L><S><E>--
+  constexpr size_t ap_len = 10;
+  static char perms[ap_len] = {'R', 'W', 'X', 'C', 'A', 'L', 'S', 'E', '-', '-'};
+  for (size_t i = 0; i < ap_len; i++)
+    s << ( (ap & (1 << i)) ? perms[i] : '-');
+}
+
+
+static void DumpFormattedCap(llvm::raw_ostream &s, uint64_t addr, uint32_t
+                             addr_size, bool tag, uint32_t sdp, uint32_t
+                             sdp_bits, bool capability_mode, uint32_t ap,
+                             uint32_t lv_bits, bool sealed, uint64_t base,
+                             uint64_t top) {
+  // <addr> [<tag>:<sdp>:<mode>:<arch_perms>:<lv_bits>:<seal>:<base>-<top>]
+  DumpAddress(s, addr, addr_size);
+  s << " [";
+  s << (tag ? 'V' : 'I') << ':';
+  DumpSDP(s, sdp, sdp_bits);
+  s << ':';
+  s << (capability_mode ? 'C' : 'I') << ':';
+  DumpAP(s, ap);
+  s << ':' << lv_bits << ':';
+  s << (sealed ? 'S' : '-') << ':';
+  DumpAddress(s, base, addr_size);
+  s << '-';
+  DumpAddress(s, top, addr_size);
+  s << ']';
+}
+
+template <bool Is64Bit>
+static void CapDumper(llvm::raw_ostream &s, uint64_t addr, uint64_t meta,
+                      bool tag) {
+  llvm::cc::CapTy<Is64Bit> cap;
+  constexpr uint32_t lv_bits = 1;
+  llvm::cc::decompressMem<Is64Bit>(meta, addr, tag, lv_bits, &cap);
+
+  uint32_t addr_size = Is64Bit ? 8 : 4;
+  uint8_t sdp = llvm::cc::getSDP<Is64Bit>(&cap);
+  uint8_t sdp_bits = Is64Bit ? 4 : 2;
+  bool cap_mode = cap.cr_m != 0;
+  uint32_t ap = llvm::cc::getAP<Is64Bit>(&cap);
+  bool sealed = cap.is_sealed();
+
+  uint64_t base = cap.base();
+  uint64_t top = cap.top();
+
+  DumpFormattedCap(s, addr, addr_size, tag, sdp, sdp_bits, cap_mode, ap,
+                   lv_bits, sealed, base, top);
+}
+
+void lldb_private::DumpCapability(llvm::raw_ostream &s, bool valid,
+                                  uint64_t addr, uint32_t addr_size,
+                                  uint64_t meta) {
+  if (addr_size == 8) {
+    CapDumper<true>(s, addr, meta, valid);
+  } else {
+    CapDumper<false>(s, addr, meta, valid);
+  }
 }
 
 // Put an address range out to the stream with optional prefix and suffix

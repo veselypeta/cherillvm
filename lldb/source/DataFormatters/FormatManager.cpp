@@ -17,6 +17,7 @@
 #include "lldb/Target/Language.h"
 #include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/lldb-enumerations.h"
 #include "llvm/ADT/STLExtras.h"
 
 using namespace lldb;
@@ -72,6 +73,7 @@ static constexpr FormatInfo g_format_infos[] = {
     {eFormatInstruction, 'i', "instruction"},
     {eFormatVoid, 'v', "void"},
     {eFormatUnicode8, 'u', "unicode8"},
+    {eFormatCapability, '\0' /*TODO??*/, "capability"},
 };
 
 static_assert((sizeof(g_format_infos) / sizeof(g_format_infos[0])) ==

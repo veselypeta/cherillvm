@@ -84,5 +84,24 @@ constexpr void decompressMem(uint64_t Pesbt, uint64_t Cursor, bool Tag,
     cc64r_decompress_raw__(Pesbt, Cursor, Tag, LVBits, Csp);
   }
 }
+
+
+template<bool Is64Bit>
+constexpr uint8_t getSDP(CapTy<Is64Bit> *Csp) {
+  if constexpr (Is64Bit) {
+    return cc128r_get_sdp(Csp);
+  } else {
+    return cc64r_get_sdp(Csp);
+  }
+}
+
+template <bool Is64Bit> constexpr uint32_t getAP(CapTy<Is64Bit> *Csp) {
+  if constexpr (Is64Bit) {
+    return cc128r_get_ap(Csp);
+  } else {
+    return cc64r_get_ap(Csp);
+  }
+}
+
 } // namespace llvm::cc
 #endif // LLVM_COMPRESSED_CAP_UTILS

@@ -131,10 +131,12 @@ bool RegisterValue::GetScalarValue(Scalar &scalar) const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
-  case eTypeCapability64:
-  case eTypeCapability128:
     scalar = m_scalar;
     return true;
+  case eTypeCapability64:
+  case eTypeCapability128:
+    assert(0 && "What??");
+    break;
   }
   return false;
 }
@@ -221,14 +223,13 @@ Status RegisterValue::SetValueFromData(const RegisterInfo &reg_info,
     break;
   case eEncodingCapability: {
     uint64_t addr, meta;
-    if (reg_info.byte_size == 16) {
-      addr = src.GetMaxU64(&src_offset, 8);
-      meta = src.GetMaxU64(&src_offset, 8);
-    } else {
-      addr = src.GetMaxU32(&src_offset, 4);
-      meta = src.GetMaxU32(&src_offset, 4);
-    }
-    SetCap(addr, meta, false, reg_info.byte_size);
+    uint8_t tag = src.GetMaxU64(&src_offset, 1);
+    addr = src.GetMaxU64(&src_offset, reg_info.byte_size / 2);
+    meta = src.GetMaxU64(&src_offset, reg_info.byte_size / 2);
+    (void)addr;
+    (void)meta;
+    (void)tag;
+    SetCap(addr, meta, tag, reg_info.byte_size);
     break;
   }
   case eEncodingVector: {
@@ -464,8 +465,10 @@ bool RegisterValue::SignExtend(uint32_t sign_bitpos) {
   case eTypeDouble:
   case eTypeLongDouble:
   case eTypeBytes:
+    break;
   case eTypeCapability64:
   case eTypeCapability128:
+    assert(0 && "Sign Extend??");
     break;
   }
   return false;
@@ -484,8 +487,6 @@ bool RegisterValue::CopyValue(const RegisterValue &rhs) {
   case eTypeUInt32:
   case eTypeUInt64:
   case eTypeUInt128:
-  case eTypeCapability64:
-  case eTypeCapability128:
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
@@ -494,6 +495,10 @@ bool RegisterValue::CopyValue(const RegisterValue &rhs) {
   case eTypeBytes:
     buffer.bytes = rhs.buffer.bytes;
     buffer.byte_order = rhs.buffer.byte_order;
+    break;
+  case eTypeCapability64:
+  case eTypeCapability128:
+    assert(0 && "CopyValue?");
     break;
   }
   return true;
@@ -698,11 +703,11 @@ const void *RegisterValue::GetBytes() const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
-  case eTypeCapability64:
-  case eTypeCapability128:
     m_scalar.GetBytes(buffer.bytes);
     return buffer.bytes.data();
   case eTypeBytes:
+  case eTypeCapability64:
+  case eTypeCapability128:
     return buffer.bytes.data();
   }
   return nullptr;
@@ -722,10 +727,10 @@ uint32_t RegisterValue::GetByteSize() const {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
-  case eTypeCapability64:
-  case eTypeCapability128:
     return m_scalar.GetByteSize();
   case eTypeBytes:
+  case eTypeCapability64:
+  case eTypeCapability128:
     return buffer.bytes.size();
   }
   return 0;
@@ -751,9 +756,9 @@ bool RegisterValue::SetUInt(uint64_t uint, uint32_t byte_size) {
 
 bool RegisterValue::SetCap(uint64_t addr, uint64_t meta, bool valid,
                            uint32_t byte_size) {
-  if (byte_size == 8)
+  if (byte_size < 16)
     SetCap64(addr, meta, valid);
-  else if (byte_size == 16)
+  else if (byte_size >= 16)
     SetCap128(addr, meta, valid);
   else
     return false;
@@ -786,11 +791,13 @@ bool RegisterValue::operator==(const RegisterValue &rhs) const {
     case eTypeFloat:
     case eTypeDouble:
     case eTypeLongDouble:
-    case eTypeCapability64:
-    case eTypeCapability128:
       return m_scalar == rhs.m_scalar;
     case eTypeBytes:
       return buffer.bytes == rhs.buffer.bytes;
+    case eTypeCapability64:
+    case eTypeCapability128:
+      assert(0 && "operator ==");
+      break;
     }
   }
   return false;
@@ -818,8 +825,6 @@ bool RegisterValue::ClearBit(uint32_t bit) {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
-  case eTypeCapability64:
-  case eTypeCapability128:
     break;
 
   case eTypeBytes:
@@ -837,6 +842,10 @@ bool RegisterValue::ClearBit(uint32_t bit) {
         return true;
       }
     }
+    break;
+  case eTypeCapability64:
+  case eTypeCapability128:
+    assert(0 && "operator !=");
     break;
   }
   return false;
@@ -860,8 +869,6 @@ bool RegisterValue::SetBit(uint32_t bit) {
   case eTypeFloat:
   case eTypeDouble:
   case eTypeLongDouble:
-  case eTypeCapability64:
-  case eTypeCapability128:
     break;
 
   case eTypeBytes:
@@ -879,6 +886,10 @@ bool RegisterValue::SetBit(uint32_t bit) {
         return true;
       }
     }
+    break;
+  case eTypeCapability64:
+  case eTypeCapability128:
+    assert(0 && "SetBit()");
     break;
   }
   return false;

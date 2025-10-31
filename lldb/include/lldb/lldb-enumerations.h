@@ -201,6 +201,7 @@ enum Format {
   eFormatInstruction, ///< Disassemble an opcode
   eFormatVoid,        ///< Do not print this
   eFormatUnicode8,
+  eFormatCapability,  /// < Print all capability fields.
   kNumFormats
 };
 

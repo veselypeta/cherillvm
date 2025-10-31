@@ -57,7 +57,8 @@ public:
     TypeUInt64,  ///< Format output as unsigned 64 bit integers
     TypePointer, ///< Format output as pointers
     TypeULEB128, ///< Format output as ULEB128 numbers
-    TypeSLEB128  ///< Format output as SLEB128 numbers
+    TypeSLEB128, ///< Format output as SLEB128 numbers
+    TypeCapability, ///< Format output as a capability
   };
 
   /// Default constructor.
@@ -547,6 +548,10 @@ public:
   uint64_t GetMaxU64Bitfield(lldb::offset_t *offset_ptr, size_t size,
                              uint32_t bitfield_bit_size,
                              uint32_t bitfield_bit_offset) const;
+
+
+  /// Extract the capability tag
+  bool GetCapabilityTag(lldb::offset_t *offset_ptr) const;
 
   /// Extract an signed integer of size \a size from \a *offset_ptr, then
   /// extract and sign-extend the bitfield from this value if \a

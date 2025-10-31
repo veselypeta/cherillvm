@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Host/Config.h"
+#include "lldb/lldb-enumerations.h"
 
 #include <cerrno>
 #include <cstdlib>
@@ -4663,6 +4664,15 @@ bool ParseRegisters(
               // treat them as vector (similarly to xmm/ymm)
               reg_info.format = eFormatVectorOfUInt8;
               reg_info.encoding = eEncodingVector;
+            } else if (gdb_type == "data_capability" ||
+                       gdb_type == "code_capability") {
+              reg_info.format = eFormatCapability;
+              reg_info.encoding = eEncodingCapability;
+              // Annoyingly gdb-remote will report the bitsize to be 8/16 bytes
+              // - however, when the register data is fetched it includes an
+              // additional byte for the tag. We therefore have to increment
+              // it's bitsize to compensate for this.
+              reg_info.byte_size += 1;
             } else {
               LLDB_LOGF(
                   log,
@@ -4880,6 +4890,7 @@ bool ProcessGDBRemote::GetGDBServerRegisterInfo(ArchSpec &arch_to_use) {
   std::vector<DynamicRegisterInfo::Register> registers;
   if (GetGDBServerRegisterInfoXMLAndProcess(arch_to_use, "target.xml",
                                             registers) &&
+    ///
       // Target XML is not required to include register information.
       !registers.empty())
     AddRemoteRegisters(registers, arch_to_use);
